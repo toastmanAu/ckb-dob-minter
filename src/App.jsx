@@ -47,6 +47,31 @@ function AppInner({ network, setNetwork }) {
 
   useEffect(() => { if (file) setContentType(file.type); }, [file]);
 
+
+  // Patch ccc-connector shadow DOM for mobile sizing
+  useEffect(() => {
+    const patch = () => {
+      const el = document.querySelector('ccc-connector');
+      if (!el?.shadowRoot) return;
+      if (el.shadowRoot.querySelector('#kernel-patch')) return;
+      const style = document.createElement('style');
+      style.id = 'kernel-patch';
+      style.textContent = `
+        .main {
+          max-width: min(22rem, 94vw) !important;
+          width: min(22rem, 94vw) !important;
+          font-size: 14px !important;
+        }
+        .wallet-icon { width: 3rem !important; height: 3rem !important; }
+        .connecting-wallet-icon { width: 3.5rem !important; height: 3.5rem !important; }
+      `;
+      el.shadowRoot.appendChild(style);
+    };
+    // Retry until the element exists (it's a web component, may take a tick)
+    const t = setInterval(() => { patch(); }, 300);
+    return () => clearInterval(t);
+  }, []);
+
   const reasons = [];
   if (!nodeInfo)            reasons.push('Connect a CKB node');
   if (!file)                reasons.push('Select a file to mint');
