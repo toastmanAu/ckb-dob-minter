@@ -10,9 +10,10 @@ export function useNodeFinder(network) {
   const discover = useCallback(async () => {
     setStatus('scanning');
     setError('');
-    const info = await discoverNode(msg => setProgress(msg));
-    if (info) { setNodeInfo(info); setStatus('connected'); }
-    else       { setStatus('prompt'); }
+    const result = await discoverNode(msg => setProgress(msg));
+    // result is null (not found) or { isBrave } (Brave, skip LAN) or a full node info object
+    if (result && result.url) { setNodeInfo(result); setStatus('connected'); }
+    else { setStatus('prompt'); if (result?.isBrave) setError('brave'); }
   }, []);
 
   const connectCustom = useCallback(async (url) => {

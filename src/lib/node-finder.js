@@ -64,27 +64,30 @@ export async function discoverNode(onProgress = () => {}) {
     if (info) { try { localStorage.setItem(STORAGE_KEY, url); } catch {} return info; }
   }
 
-  // 3. LAN scan
-  onProgress('Scanning local network…');
-  const candidates = [];
-  for (const prefix of LAN_PREFIXES)
-    for (const suffix of LAN_SUFFIXES)
-      for (const port of LAN_PORTS)
-        candidates.push(`http://${prefix}.${suffix}:${port}`);
+  // 3. LAN scan — skipped on Brave (blocks cross-origin LAN requests silently)
+  const isBrave = !!(navigator.brave && await navigator.brave.isBrave().catch(() => false));
+  if (!isBrave) {
+    onProgress('Scanning local network…');
+    const candidates = [];
+    for (const prefix of LAN_PREFIXES)
+      for (const suffix of LAN_SUFFIXES)
+        for (const port of LAN_PORTS)
+          candidates.push(`http://${prefix}.${suffix}:${port}`);
 
-  for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
-    const batch   = candidates.slice(i, i + BATCH_SIZE);
-    const results = await Promise.allSettled(batch.map(u => probe(u, TIMEOUT_LAN)));
-    for (let j = 0; j < results.length; j++) {
-      if (results[j].value) {
-        const info = results[j].value;
-        try { localStorage.setItem(STORAGE_KEY, batch[j]); } catch {}
-        return info;
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+      const batch   = candidates.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(batch.map(u => probe(u, TIMEOUT_LAN)));
+      for (let j = 0; j < results.length; j++) {
+        if (results[j].value) {
+          const info = results[j].value;
+          try { localStorage.setItem(STORAGE_KEY, batch[j]); } catch {}
+          return info;
+        }
       }
     }
   }
 
-  return null; // prompt user
+  return { isBrave }; // null-ish signal to show prompt; isBrave flag for UI
 }
 
 export async function tryCustomURL(url) {

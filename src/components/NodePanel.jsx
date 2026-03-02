@@ -48,9 +48,15 @@ export function NodePanel({ status, nodeInfo, progress, error, onCustom, onPubli
             />
             <button className="btn-primary" onClick={() => onCustom(customURL)}>Connect</button>
           </div>
+          {error === 'brave' && (
+            <div style={{background:'rgba(255,140,66,.08)',border:'1px solid rgba(255,140,66,.3)',
+              borderRadius:'8px',padding:'8px 12px',fontSize:'.82rem',color:'#ff8c42',marginBottom:'8px'}}>
+              🦁 <strong>Brave blocks LAN scanning</strong> — enter your node's IP directly below.
+            </div>
+          )}
           <div className="hint">
-            Scanned: <code>localhost:8114</code>, <code>:8117</code>, and common LAN IPs (192.168.x.x, 10.0.x.x).<br/>
-            Enter your node's IP directly — e.g. <code>http://192.168.68.87:8114</code>
+            {error !== 'brave' && <>Scanned: <code>localhost:8114</code>, <code>:8117</code>, and common LAN IPs.<br/></>}
+            Node on another machine? e.g. <code>http://192.168.68.87:8114</code>
           </div>
           <div style={{ marginTop: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <button className="btn-ghost" onClick={onPublic}>Use public node</button>
