@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useCcc } from '@ckb-ccc/connector-react';
+import { useCcc, ccc } from '@ckb-ccc/connector-react';
 import { helpers } from '@ckb-lumos/lumos';
 import { initializeConfig } from '@ckb-lumos/lumos/config';
 import { predefinedSporeConfigs } from '@spore-sdk/core';
@@ -79,6 +79,7 @@ export default function App() {
   }, [canMint, nodeInfo, file, contentType, meta, network, signer, address]);
 
   return (
+    <ccc.Provider defaultNetwork={network === 'testnet' ? 'testnet' : 'mainnet'}>
     <div className="app">
       <header>
         <div className="header-inner">
@@ -96,7 +97,7 @@ export default function App() {
       <main>
         <NodePanel
           status={nodeStatus} nodeInfo={nodeInfo} progress={nodeProgress}
-          error={nodeError} onCustom={connectCustom} onPublic={usePublic} onForget={forget}
+          error={nodeError} network={network} onCustom={connectCustom} onPublic={usePublic} onForget={forget}
         />
         <FilePanel
           file={file} fileError={fileError} inputRef={inputRef}
@@ -128,5 +129,6 @@ export default function App() {
         </div>
       </main>
     </div>
+    </ccc.Provider>
   );
 }
