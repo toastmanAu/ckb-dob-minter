@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CKB DOB Minter</title>
+  <style>
+    :root {
+      --bg:      #0a0c0f;
+      --surface: #111318;
+      --surface2:#181c23;
+      --border:  #1e2430;
+      --accent:  #00c8ff;
+      --green:   #00e5a0;
+      --orange:  #ff8c42;
+      --red:     #ff4560;
+      --purple:  #7b5cfa;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.6; min-height: 100vh; }
+    a { color: var(--accent); }
+
+    /* ── Header ── */
+    header { border-bottom: 1px solid var(--border); padding: 0 2rem; background: rgba(10,12,15,.95); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 100; }
+    .header-inner { max-width: 760px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    .logo { font-weight: 800; font-size: 1.1rem; color: var(--text); letter-spacing: -.02em; }
+    .logo span { color: var(--accent); }
+    .network-toggle { display: flex; gap: 4px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+    .network-toggle button { background: none; border: none; color: var(--muted); font-size: .8rem; padding: .25rem .7rem; border-radius: 5px; cursor: pointer; transition: all .15s; }
+    .network-toggle button.active { background: var(--accent); color: #0a0c0f; font-weight: 700; }
+
+    /* ── Layout ── */
+    .main { max-width: 760px; margin: 0 auto; padding: 2rem; display: grid; gap: 1.2rem; }
+
+    /* ── Cards ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem; }
+    .card-title { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 1rem; }
+
+    /* ── Node panel ── */
+    .node-status { display: flex; align-items: center; gap: 10px; }
+    #node-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+    #node-msg { color: var(--muted); font-size: .9rem; flex: 1; }
+    #btn-change-node { display: none; background: none; border: 1px solid var(--border); color: var(--muted); font-size: .78rem; padding: .2rem .6rem; border-radius: 5px; cursor: pointer; }
+    #btn-change-node:hover { color: var(--text); border-color: var(--accent); }
+    #node-prompt { display: none; margin-top: 1rem; }
+    .input-row { display: flex; gap: 8px; margin-bottom: .5rem; }
+    .input-row input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: .6rem .9rem; color: var(--text); font-size: .9rem; outline: none; }
+    .input-row input:focus { border-color: var(--accent); }
+    .btn-primary { background: var(--accent); color: #0a0c0f; border: none; border-radius: 8px; padding: .6rem 1.2rem; font-weight: 700; font-size: .9rem; cursor: pointer; transition: opacity .15s; }
+    .btn-primary:hover { opacity: .85; }
+    .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-ghost { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: .6rem 1.2rem; font-size: .9rem; cursor: pointer; }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .hint { color: var(--muted); font-size: .8rem; }
+    .hint code { color: var(--accent); }
+
+    /* ── File dropzone ── */
+    #dropzone {
+      border: 2px dashed var(--border); border-radius: 12px; padding: 2.5rem;
+      text-align: center; cursor: pointer; transition: all .2s; color: var(--muted);
+    }
+    #dropzone:hover, #dropzone.drag-over { border-color: var(--accent); background: rgba(0,200,255,.04); color: var(--text); }
+    #dropzone .drop-icon { font-size: 2rem; margin-bottom: .5rem; }
+    #dropzone p { font-size: .9rem; }
+    #dropzone small { font-size: .78rem; color: var(--muted); }
+    #file-info { margin-top: .8rem; font-size: .88rem; color: var(--green); }
+    #cost-estimate { font-size: .82rem; color: var(--muted); margin-top: .3rem; }
+    #file-preview-wrap { display: none; margin-top: 1rem; }
+    #file-preview { max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid var(--border); }
+
+    /* ── Wallet ── */
+    .wallet-row { display: flex; align-items: center; justify-content: space-between; }
+    .wallet-info { font-size: .88rem; color: var(--muted); }
+    .wallet-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,229,160,.1); border: 1px solid rgba(0,229,160,.3); color: var(--green); padding: .3rem .8rem; border-radius: 6px; font-size: .82rem; }
+
+    /* ── Mint button ── */
+    #btn-mint {
+      width: 100%; padding: 1rem; font-size: 1.05rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      color: #fff; border: none; border-radius: 12px; cursor: pointer;
+      transition: opacity .2s, transform .1s;
+      letter-spacing: -.01em;
+    }
+    #btn-mint:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+    #btn-mint:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+    /* ── Status ── */
+    .status-msg { padding: .75rem 1rem; border-radius: 8px; font-size: .88rem; margin-top: .5rem; display: none; }
+    .status-info    { background: rgba(0,200,255,.1); border: 1px solid rgba(0,200,255,.3); color: var(--accent); }
+    .status-success { background: rgba(0,229,160,.1); border: 1px solid rgba(0,229,160,.3); color: var(--green); }
+    .status-error   { background: rgba(255,69,96,.1);  border: 1px solid rgba(255,69,96,.3);  color: var(--red); }
+
+    /* ── Result box ── */
+    #result-box { display: none; }
+    .result-row { display: flex; flex-direction: column; gap: .4rem; }
+    .result-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .result-value { font-family: monospace; font-size: .82rem; color: var(--accent); word-break: break-all; }
+
+    /* ── Explainer ── */
+    .explainer { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+    .explainer-item { display: flex; gap: .75rem; align-items: flex-start; }
+    .explainer-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: .1rem; }
+    .explainer-text h4 { font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: .2rem; }
+    .explainer-text p  { font-size: .82rem; color: var(--muted); line-height: 1.5; }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">CKB <span>DOB</span> Minter</div>
+    <div class="network-toggle">
+      <button data-network="mainnet" class="active">Mainnet</button>
+      <button data-network="testnet">Testnet</button>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- 1. Node Connection -->
+  <div class="card">
+    <div class="card-title">1 — CKB Node</div>
+    <div class="node-status">
+      <div id="node-dot"></div>
+      <div id="node-msg">Scanning…</div>
+      <button id="btn-change-node">change</button>
+    </div>
+    <div id="node-prompt">
+      <div class="input-row">
+        <input id="input-node-url" type="text" placeholder="http://192.168.x.x:8114 or paste your RPC URL" />
+        <button class="btn-primary" id="btn-connect-custom">Connect</button>
+      </div>
+      <div class="hint">
+        Common: <code>localhost:8114</code> (full node) · <code>localhost:8117</code> (light client)
+      </div>
+      <div style="margin-top:.75rem">
+        <button class="btn-ghost" id="btn-use-public">Use public node instead</button>
+        <span style="font-size:.78rem;color:var(--muted);margin-left:.5rem">rate limited, not recommended for production</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. File -->
+  <div class="card">
+    <div class="card-title">2 — Content</div>
+    <div id="dropzone">
+      <div class="drop-icon">📄</div>
+      <p>Drop any file here, or click to browse</p>
+      <small>Image, text, JSON, binary — anything up to 500 KB · stored fully on-chain</small>
+    </div>
+    <input id="file-input" type="file" style="display:none" />
+    <div id="file-info"></div>
+    <div id="cost-estimate"></div>
+    <div id="file-preview-wrap">
+      <img id="file-preview" alt="preview" />
+    </div>
+  </div>
+
+  <!-- 3. Wallet -->
+  <div class="card">
+    <div class="card-title">3 — Wallet</div>
+    <div class="wallet-row">
+      <div class="wallet-info" id="wallet-info">No wallet connected — JoyID (passkey) or MetaMask</div>
+      <button class="btn-primary" id="btn-connect-wallet">Connect Wallet</button>
+    </div>
+  </div>
+
+  <!-- 4. Mint -->
+  <div class="card">
+    <div class="card-title">4 — Mint</div>
+    <button id="btn-mint" disabled>Connect Wallet + File</button>
+    <div id="status-msg" class="status-msg"></div>
+  </div>
+
+  <!-- Result -->
+  <div class="card" id="result-box">
+    <div class="card-title">Minted ✓</div>
+    <div class="result-row">
+      <div class="result-label">Transaction Hash</div>
+      <div class="result-value" id="result-txhash"></div>
+    </div>
+    <div class="result-row" style="margin-top:.8rem">
+      <div class="result-label">Spore ID</div>
+      <div class="result-value" id="result-sporeid"></div>
+    </div>
+  </div>
+
+  <!-- Explainer -->
+  <div class="card">
+    <div class="card-title">What is a DOB?</div>
+    <div class="explainer">
+      <div class="explainer-item">
+        <div class="explainer-icon">⛓️</div>
+        <div class="explainer-text">
+          <h4>Fully on-chain</h4>
+          <p>Content lives inside the CKB cell — no IPFS, no S3, no URLs that can break.</p>
+        </div>
+      </div>
+      <div class="explainer-item">
+        <div class="explainer-icon">💎</div>
+        <div class="explainer-text">
+          <h4>Intrinsic value</h4>
+          <p>Backed by real CKB. Burn the DOB any time to reclaim the storage deposit.</p>
+        </div>
+      </div>
+      <div class="explainer-item">
+        <div class="explainer-icon">🔒</div>
+        <div class="explainer-text">
+          <h4>Immutable</h4>
+          <p>Once minted, content cannot be changed. What you put in is what stays forever.</p>
+        </div>
+      </div>
+      <div class="explainer-item">
+        <div class="explainer-icon">🌐</div>
+        <div class="explainer-text">
+          <h4>Your node</h4>
+          <p>Transactions go through your own CKB node. You don't depend on anyone else's infrastructure.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

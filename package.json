@@ -1,0 +1,21 @@
+{
+  "name": "ckb-dob-minter",
+  "version": "0.1.0",
+  "description": "Browser-based DOB minting tool for Nervos CKB — mint fully on-chain digital objects from your own node",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev":   "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@spore-sdk/core": "^0.2.0",
+    "@ckb-ccc/connector-react": "^0.0.14",
+    "@ckb-ccc/core": "^0.0.14"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "vite-plugin-node-polyfills": "^0.21.0"
+  }
+}
