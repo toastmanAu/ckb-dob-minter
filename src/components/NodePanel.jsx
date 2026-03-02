@@ -39,16 +39,7 @@ export function NodePanel({ status, nodeInfo, progress, error, network, onCustom
         )}
       </div>
 
-      {/* Network mismatch warning — local node but testnet selected */}
-      {status === 'connected' && !nodeInfo?.isPublic && network === 'testnet' && (
-        <div style={{
-          background:'rgba(255,140,66,.08)', border:'1px solid rgba(255,140,66,.3)',
-          borderRadius:'8px', padding:'8px 12px', fontSize:'.82rem', color:'#ff8c42',
-          marginTop:'8px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'8px'
-        }}>
-          <span>⚠️ Local node is mainnet — switched to public testnet RPC</span>
-        </div>
-      )}
+
 
       {/* When connected: show public node toggle for easy network switch */}
       {status === 'connected' && (

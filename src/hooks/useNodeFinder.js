@@ -1,21 +1,33 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { discoverNode, tryCustomURL, getPublicFallback, forgetNode } from '../lib/node-finder.js';
+import { discoverNode, tryCustomURL, getPublicFallback, forgetNode, PUBLIC_RPC, TESTNET_RPC } from '../lib/node-finder.js';
 
 export function useNodeFinder(network) {
   const [status,   setStatus]   = useState('scanning');
   const [nodeInfo, setNodeInfo] = useState(null);
   const [progress, setProgress] = useState('Scanning…');
   const [error,    setError]    = useState('');
-  const prevNetwork = useRef(network);
+  const prevNetwork = useRef(null);
+
+  const connectPublic = useCallback((net) => {
+    const url = getPublicFallback(net ?? network);
+    setNodeInfo({ url, tipBlock: 0, isLocal: false, isPublic: true });
+    setStatus('connected');
+    setError('');
+  }, [network]);
 
   const discover = useCallback(async () => {
+    // Testnet: skip local scan, use public testnet RPC immediately
+    if (network === 'testnet') {
+      connectPublic('testnet');
+      return;
+    }
     setStatus('scanning');
     setNodeInfo(null);
     setError('');
     const result = await discoverNode(msg => setProgress(msg));
     if (result && result.url) { setNodeInfo(result); setStatus('connected'); }
     else { setStatus('prompt'); if (result?.isBrave) setError('brave'); }
-  }, []);
+  }, [network, connectPublic]);
 
   const connectCustom = useCallback(async (url) => {
     setStatus('scanning');
@@ -26,44 +38,23 @@ export function useNodeFinder(network) {
     else       { setStatus('error'); setError(`Could not connect to ${url}`); }
   }, []);
 
-  const usePublic = useCallback(() => {
-    const url = getPublicFallback(network);
-    setNodeInfo({ url, tipBlock: 0, isLocal: false, isPublic: true });
-    setStatus('connected');
-  }, [network]);
+  const usePublic = useCallback(() => connectPublic(network), [network, connectPublic]);
 
   const forget = useCallback(() => {
     forgetNode();
     setNodeInfo(null);
-    setStatus('scanning');
     discover();
   }, [discover]);
 
-  // On mount: auto-discover
-  useEffect(() => { discover(); }, [discover]);
-
-  // When network changes: if on a public node, switch its URL; if on local, warn
+  // Run on mount and network change
   useEffect(() => {
     if (prevNetwork.current === network) return;
     prevNetwork.current = network;
+    discover();
+  }, [network, discover]);
 
-    if (!nodeInfo) return;
-
-    if (nodeInfo.isPublic) {
-      // Just swap the public URL
-      setNodeInfo({ ...nodeInfo, url: getPublicFallback(network), tipBlock: 0 });
-    } else if (nodeInfo.isLocal || !nodeInfo.isLocal) {
-      // Local/LAN node is always mainnet — force public testnet if switching to testnet
-      if (network === 'testnet') {
-        setNodeInfo({ url: getPublicFallback('testnet'), tipBlock: 0, isLocal: false, isPublic: true });
-        setStatus('connected');
-      }
-      // switching back to mainnet: re-discover
-      if (network === 'mainnet') {
-        discover();
-      }
-    }
-  }, [network, nodeInfo, discover]);
+  // Initial mount
+  useEffect(() => { discover(); }, []); // eslint-disable-line
 
   return { status, nodeInfo, progress, error, connectCustom, usePublic, forget };
 }
