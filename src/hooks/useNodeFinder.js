@@ -1,53 +1,43 @@
-/**
- * hooks/useNodeFinder.js — React hook wrapping node-finder logic
- */
 import { useState, useEffect, useCallback } from 'react';
 import { discoverNode, tryCustomURL, getPublicFallback, forgetNode } from '../lib/node-finder.js';
 
 export function useNodeFinder(network) {
-  const [status,   setStatus]   = useState('scanning'); // scanning | connected | prompt | error
+  const [status,   setStatus]   = useState('scanning');
   const [nodeInfo, setNodeInfo] = useState(null);
+  const [progress, setProgress] = useState('Scanning…');
   const [error,    setError]    = useState('');
 
   const discover = useCallback(async () => {
     setStatus('scanning');
     setError('');
-    const info = await discoverNode();
-    if (info) {
-      setNodeInfo(info);
-      setStatus('connected');
-    } else {
-      setStatus('prompt');
-    }
+    const info = await discoverNode(msg => setProgress(msg));
+    if (info) { setNodeInfo(info); setStatus('connected'); }
+    else       { setStatus('prompt'); }
   }, []);
 
   const connectCustom = useCallback(async (url) => {
     setStatus('scanning');
+    setProgress('Connecting…');
     setError('');
     const info = await tryCustomURL(url);
-    if (info) {
-      setNodeInfo(info);
-      setStatus('connected');
-    } else {
-      setStatus('error');
-      setError(`Could not connect to ${url}`);
-    }
+    if (info) { setNodeInfo(info); setStatus('connected'); }
+    else       { setStatus('error'); setError(`Could not connect to ${url}`); }
   }, []);
 
   const usePublic = useCallback(() => {
     const url  = getPublicFallback(network);
-    const info = { url, tipBlock: 0, isLocal: false };
-    setNodeInfo(info);
+    setNodeInfo({ url, tipBlock: 0, isLocal: false });
     setStatus('connected');
   }, [network]);
 
   const forget = useCallback(() => {
     forgetNode();
     setNodeInfo(null);
-    setStatus('prompt');
-  }, []);
+    setStatus('scanning');
+    discover();
+  }, [discover]);
 
   useEffect(() => { discover(); }, [discover]);
 
-  return { status, nodeInfo, error, connectCustom, usePublic, forget };
+  return { status, nodeInfo, progress, error, connectCustom, usePublic, forget };
 }
