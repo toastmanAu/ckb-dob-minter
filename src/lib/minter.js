@@ -2,19 +2,21 @@
  * lib/minter.js — DOB minting logic
  *
  * Wraps @spore-sdk/core createSpore.
- * All user-facing fields are explicit parameters — nothing is hidden.
+ * spore-sdk 0.2.x returns a txSkeleton — we sign + send separately via CKB-CCC.
  */
 
 import { createSpore, predefinedSporeConfigs } from '@spore-sdk/core';
+import { Transaction } from '@ckb-ccc/core';
+import { helpers, RPC }  from '@ckb-lumos/lumos';
+import { common }        from '@ckb-lumos/lumos/common-scripts';
+import { initializeConfig } from '@ckb-lumos/lumos/config';
 
-export const BASE_OVERHEAD_BYTES = 96; // spore cell base capacity (bytes = CKB)
+export const BASE_OVERHEAD_BYTES = 96;
 
-/** Estimate CKB needed. Returns number (CKB, not shannons). */
 export function estimateCost(contentBytes) {
   return BASE_OVERHEAD_BYTES + contentBytes;
 }
 
-/** Build Spore SDK config pointing at the user's node. */
 export function buildSporeConfig(rpcURL, network = 'mainnet') {
   const base = network === 'testnet'
     ? predefinedSporeConfigs.Testnet
@@ -22,49 +24,88 @@ export function buildSporeConfig(rpcURL, network = 'mainnet') {
   return {
     ...base,
     ckbNodeUrl:    rpcURL,
-    ckbIndexerUrl: rpcURL, // CKB v0.100+ indexer is built into main RPC
+    ckbIndexerUrl: rpcURL,
   };
 }
 
 /**
- * mintDOB — build, sign, broadcast a Spore mint transaction.
+ * mintDOB
  *
  * @param {object} p
- *   p.rpcURL       {string}      CKB node RPC URL
+ *   p.rpcURL       {string}      CKB RPC URL
  *   p.network      {string}      'mainnet' | 'testnet'
- *   p.contentType  {string}      MIME type e.g. 'image/png'
+ *   p.contentType  {string}      MIME type
  *   p.content      {Uint8Array}  file bytes
- *   p.clusterId    {string?}     hex cluster/collection ID (0x...)
- *   p.toLock       {object}      recipient lock script (from CKB-CCC address)
- *   p.fromAddress  {string}      sender CKB address (fees + capacity come from here)
- *   p.signer       {object}      CKB-CCC signer
- *   p.onProgress   {function?}   (msg: string) => void
+ *   p.clusterId    {string?}     hex cluster ID
+ *   p.toLock       {Script}      recipient lock script (Lumos Script object)
+ *   p.fromAddress  {string}      sender CKB address
+ *   p.feeRate      {number}      shannons/KB (default 1000)
+ *   p.signer       {ccc.Signer}  CKB-CCC signer
+ *   p.onProgress   {fn?}         (msg) => void
  *
- * @returns {{ txHash: string, outputIndex: number }}
+ * @returns {{ txHash: string, outputIndex: number, sporeId: string }}
  */
 export async function mintDOB(p) {
-  const log = p.onProgress || (() => {});
-
-  log('Building transaction…');
-
+  const log      = p.onProgress || (() => {});
+  const feeRate  = BigInt(p.feeRate || 1000);
   const config   = buildSporeConfig(p.rpcURL, p.network);
+
+  // Init Lumos config for this network
+  initializeConfig(config.lumos);
+
+  log('Building Spore transaction…');
+
   const sporeData = {
     contentType: p.contentType,
     content:     p.content,
     ...(p.clusterId?.trim() ? { clusterId: p.clusterId.trim() } : {}),
   };
 
-  log('Signing with wallet…');
-
-  const { txHash, outputIndex } = await createSpore({
+  // createSpore returns a txSkeleton + outputIndex
+  const { txSkeleton: rawSkeleton, outputIndex } = await createSpore({
     data:      sporeData,
     toLock:    p.toLock,
     fromInfos: [p.fromAddress],
+    feeRate,
     config,
-    // CKB-CCC signer is Lumos-compatible via signTransaction
-    signatureProvider: async tx => p.signer.signTransaction(tx),
   });
 
+  log('Paying fee…');
+
+  // Pay fee using common scripts
+  let txSkeleton = await common.payFeeByFeeRate(
+    rawSkeleton,
+    [p.fromAddress],
+    feeRate,
+    undefined,
+    { config: config.lumos }
+  );
+
+  log('Preparing signatures…');
+
+  // Prep for signing
+  txSkeleton = common.prepareSigningEntries(txSkeleton, { config: config.lumos });
+
+  // Convert skeleton to a signable transaction via CKB-CCC
+  // CKB-CCC signer.signTransaction expects a ccc.Transaction
+  // We build it from the Lumos skeleton
+  const lumosTransaction = helpers.createTransactionFromSkeleton(txSkeleton);
+
+  log('Signing with wallet…');
+
+  // Use signer to sign — CKB-CCC handles the wallet interaction
+  // Transaction imported at top
+  const cccTx     = Transaction.fromLumosSkeleton(txSkeleton);
+  const signedTx  = await p.signer.signTransaction(cccTx);
+
   log('Broadcasting…');
-  return { txHash, outputIndex };
+
+  const rpc     = new RPC(p.rpcURL);
+  const txHash  = await rpc.sendTransaction(signedTx, 'passthrough');
+
+  // Spore ID = type script args of the new spore output
+  const sporeOutput = txSkeleton.get('outputs').get(outputIndex);
+  const sporeId     = sporeOutput?.cellOutput?.type?.args || `${txHash}:${outputIndex}`;
+
+  return { txHash, outputIndex, sporeId };
 }
