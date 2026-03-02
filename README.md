@@ -83,3 +83,11 @@ For hardware provenance DOBs, use `content-type: application/json` with:
 - [spore-sdk](https://github.com/sporeprotocol/spore-sdk)
 - [Create DOB tutorial — Nervos docs](https://docs.nervos.org/docs/dapp/create-dob)
 - [DOB Cookbook](https://github.com/sporeprotocol/dob-cookbook)
+
+## First mint
+
+First DOB minted on CKB Testnet — 2026-03-03
+
+- **TX:** `0x74bf8469fd4e2533df6432eb70cc8616e5facffffc63a0c62cc8a9d33b48b62b`
+- **Spore ID:** `0xc7a3c0aa498bed3417580201bdc2508a7e48d13fe79e1c2bcf1e40a357f781a6`
+- Explorer: https://testnet.explorer.nervos.org/nft-info/0xc7a3c0aa498bed3417580201bdc2508a7e48d13fe79e1c2bcf1e40a357f781a6
