@@ -1,8 +1,4 @@
-import { useCcc } from '@ckb-ccc/connector-react';
-
-export function WalletPanel({ signer, address, onDisconnect }) {
-  const { open } = useCcc();
-
+export function WalletPanel({ signer, address, onDisconnect, onOpen }) {
   if (signer && address) {
     return (
       <div className="card">
@@ -24,7 +20,7 @@ export function WalletPanel({ signer, address, onDisconnect }) {
       <p className="hint" style={{ marginBottom: '0.8rem' }}>
         Sign the mint transaction with JoyID (passkey — no seed phrase) or MetaMask.
       </p>
-      <button className="btn-primary btn-wallet" onClick={() => open()}>
+      <button className="btn-primary btn-wallet" onClick={onOpen}>
         Connect Wallet
       </button>
     </div>
