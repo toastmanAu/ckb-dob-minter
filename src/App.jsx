@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useCcc, ccc } from '@ckb-ccc/connector-react';
 import { helpers } from '@ckb-lumos/lumos';
 import { initializeConfig } from '@ckb-lumos/lumos/config';
-import { predefinedSporeConfigs } from '@spore-sdk/core';
 
 import { NodePanel }   from './components/NodePanel.jsx';
 import { FilePanel }   from './components/FilePanel.jsx';
@@ -13,8 +12,8 @@ import { useNodeFinder } from './hooks/useNodeFinder.js';
 import { useFileInput }  from './hooks/useFileInput.js';
 import { mintDOB, buildSporeConfig } from './lib/minter.js';
 
-export default function App() {
-  const [network,     setNetwork]     = useState('testnet'); // testnet default for now
+// Inner component — lives INSIDE the Provider, so useCcc() works
+function AppInner({ network, setNetwork }) {
   const [meta,        setMeta]        = useState(DEFAULT_META);
   const [contentType, setContentType] = useState('');
   const [mintState,   setMintState]   = useState({
@@ -38,39 +37,31 @@ export default function App() {
   useEffect(() => { if (file) setContentType(file.type); }, [file]);
 
   const reasons = [];
-  if (!nodeInfo)              reasons.push('Connect a CKB node');
-  if (!file)                  reasons.push('Select a file to mint');
-  if (!signer || !address)    reasons.push('Connect your wallet');
-  if (!contentType?.trim())   reasons.push('Content-Type is required');
+  if (!nodeInfo)           reasons.push('Connect a CKB node');
+  if (!file)               reasons.push('Select a file to mint');
+  if (!signer || !address) reasons.push('Connect your wallet');
+  if (!contentType?.trim()) reasons.push('Content-Type is required');
   const canMint = reasons.length === 0;
 
   const handleMint = useCallback(async () => {
     if (!canMint) return;
     setMintState({ status: 'minting', progress: 'Starting…', txHash: '', sporeId: '', error: '' });
-
     try {
       const sporeConfig = buildSporeConfig(meta.indexerURL?.trim() || nodeInfo.url, network);
       initializeConfig(sporeConfig.lumos);
-
-      // Resolve recipient address → Lumos lock script
-      const toAddress  = meta.recipient?.trim() || address;
-      const toLock     = helpers.parseAddress(toAddress, { config: sporeConfig.lumos });
-
+      const toAddress = meta.recipient?.trim() || address;
+      const toLock    = helpers.parseAddress(toAddress, { config: sporeConfig.lumos });
       const { txHash, outputIndex, sporeId } = await mintDOB({
-        rpcURL:      nodeInfo.url,
-        network,
+        rpcURL: nodeInfo.url, network,
         contentType: contentType.trim(),
-        content:     file.content,
-        clusterId:   meta.clusterId,
-        toLock,
-        fromAddress: address,
-        feeRate:     parseInt(meta.feeRate) || 1000,
+        content: file.content,
+        clusterId: meta.clusterId,
+        toLock, fromAddress: address,
+        feeRate: parseInt(meta.feeRate) || 1000,
         signer,
-        onProgress:  msg => setMintState(s => ({ ...s, progress: msg })),
+        onProgress: msg => setMintState(s => ({ ...s, progress: msg })),
       });
-
       setMintState({ status: 'success', progress: '', txHash, sporeId, error: '' });
-
     } catch (err) {
       console.error(err);
       setMintState({ status: 'error', progress: '', txHash: '', sporeId: '',
@@ -79,7 +70,6 @@ export default function App() {
   }, [canMint, nodeInfo, file, contentType, meta, network, signer, address]);
 
   return (
-    <ccc.Provider defaultNetwork={network === 'testnet' ? 'testnet' : 'mainnet'}>
     <div className="app">
       <header>
         <div className="header-inner">
@@ -129,6 +119,15 @@ export default function App() {
         </div>
       </main>
     </div>
+  );
+}
+
+// Outer shell — owns network state, wraps with Provider, renders AppInner
+export default function App() {
+  const [network, setNetwork] = useState('testnet');
+  return (
+    <ccc.Provider defaultNetwork={network === 'testnet' ? 'testnet' : 'mainnet'}>
+      <AppInner network={network} setNetwork={setNetwork} />
     </ccc.Provider>
   );
 }
