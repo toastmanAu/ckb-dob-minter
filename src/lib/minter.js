@@ -3,17 +3,13 @@
  *
  * Key learnings from testnet debugging (2026-03-03):
  * 1. `to` must be a Script object, not an Address object
- * 2. clusterMode: 'clusterCell' is required when using a cluster —
- *    the cluster cell is spent+recreated in the same tx to prove ownership
- * 3. Molecule encoding roughly doubles the content byte size for CKB capacity
- *    estimation — use 2.2x multiplier for accuracy
+ * 2. clusterMode: 'clusterCell' is required when using a cluster
+ * 3. Molecule encoding roughly doubles the content byte size — use 2.2x
  * 4. completeFeeBy must be called after createSpore/createSporeCluster
  */
 import { spore as sporeLib } from '@ckb-ccc/spore';
-import { ccc } from '@ckb-ccc/core';
+import { uploadToProvider } from './storage/index.js';
 
-// Molecule encoding overhead: content is double-encoded + type/cluster ID fields
-// Real observed: 76KB image → 155KB on-chain. Use 2.2x + 300 CKB fixed overhead.
 export const MOLECULE_MULTIPLIER = 2.2;
 export const FIXED_OVERHEAD_CKB  = 300;
 
@@ -23,94 +19,99 @@ export function estimateCostCKB(contentBytes) {
 
 /**
  * Create a cluster (collection) on-chain.
- * Returns { clusterId, txHash }
  */
 export async function createCluster({ signer, name, description, onProgress }) {
   const log = onProgress || (() => {});
   log('Building cluster transaction…');
-
   const { tx, id } = await sporeLib.createSporeCluster({
     signer,
     data: { name: name.trim(), description: (description || '').trim() },
   });
-
   log('Completing fee…');
   await tx.completeFeeBy(signer, 1000n);
-
   log('Signing & broadcasting…');
   const txHash = await signer.sendTransaction(tx);
-
   return { clusterId: id, txHash };
 }
 
 /**
  * Mint a single DOB.
  *
- * @param {object} p
- * @param {object} p.signer        — CCC signer
- * @param {string} p.contentType   — MIME type e.g. 'image/jpeg'
- * @param {Uint8Array} p.content   — raw file bytes
- * @param {string} [p.clusterId]   — 0x... cluster ID (omit for standalone)
- * @param {object} [p.toLock]      — recipient lock Script (omit = sender keeps)
- * @param {function} [p.onProgress] — (msg: string) => void
+ * @param {object}     p.signer
+ * @param {string}     p.contentType
+ * @param {Uint8Array} p.content
+ * @param {string}     [p.filename]
+ * @param {string}     [p.clusterId]
+ * @param {object}     [p.toLock]       recipient lock Script
+ * @param {string}     [p.storageMode]  'inline'|'ipfs'|'arweave'|'ckbfs'
+ * @param {object}     [p.storageConfig] provider API keys etc
+ * @param {function}   [p.onProgress]
  */
 export async function mintDOB(p) {
   const log = p.onProgress || (() => {});
 
-  log('Building Spore transaction…');
+  let sporeContent     = p.content;
+  let sporeContentType = p.contentType;
 
+  // ── External storage upload ─────────────────────────────────────────────
+  if (p.storageMode && p.storageMode !== 'inline') {
+    log(`Uploading to ${p.storageMode}…`);
+    const result = await uploadToProvider({
+      provider:    p.storageMode,
+      content:     p.content,
+      contentType: p.contentType,
+      filename:    p.filename,
+      config:      p.storageConfig,
+      onProgress:  (_pct, msg) => log(msg),
+    });
+    sporeContent     = new TextEncoder().encode(result.uri);
+    sporeContentType = 'text/uri-list';
+    log(`Stored at ${result.uri}`);
+  }
+
+  // ── Build Spore tx ──────────────────────────────────────────────────────
+  log('Building Spore transaction…');
   const data = {
-    contentType: p.contentType,
-    content: p.content,
+    contentType: sporeContentType,
+    content:     sporeContent,
     ...(p.clusterId?.trim() ? { clusterId: p.clusterId.trim() } : {}),
   };
-
-  const sporeParams = {
+  const { tx, id } = await sporeLib.createSpore({
     signer: p.signer,
     data,
-    // clusterCell: spend+recreate cluster cell to prove ownership.
-    // Required when clusterId is set — without it createSpore throws.
     ...(data.clusterId ? { clusterMode: 'clusterCell' } : {}),
-    // toLock must be a Script object, not an Address
     ...(p.toLock ? { to: p.toLock } : {}),
-  };
-
-  const { tx, id } = await sporeLib.createSpore(sporeParams);
-
+  });
   log('Completing fee…');
   await tx.completeFeeBy(p.signer, 1000n);
-
   log('Signing & broadcasting…');
   const txHash = await p.signer.sendTransaction(tx);
-
   return { txHash, sporeId: id };
 }
 
 /**
- * Mint multiple DOBs sequentially into the same cluster (or standalone).
- * Calls onProgress(index, total, message) after each mint.
- * Returns array of { txHash, sporeId, name } — one per file.
+ * Mint multiple DOBs sequentially.
  */
-export async function mintDOBs({ signer, files, clusterId, toLock, onProgress }) {
+export async function mintDOBs({ signer, files, clusterId, toLock, storageMode, storageConfig, onProgress }) {
   const log = onProgress || (() => {});
   const results = [];
 
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
     log(i, files.length, `Minting ${f.name} (${i + 1}/${files.length})…`);
-
     const result = await mintDOB({
       signer,
-      contentType: f.type,
-      content: f.content,
+      contentType:   f.type,
+      content:       f.content,
+      filename:      f.name,
       clusterId,
       toLock,
-      onProgress: msg => log(i, files.length, msg),
+      storageMode:   storageMode || 'inline',
+      storageConfig,
+      onProgress:    msg => log(i, files.length, msg),
     });
-
     results.push({ ...result, name: f.name });
     log(i + 1, files.length, `✅ ${f.name} minted`);
   }
-
   return results;
 }

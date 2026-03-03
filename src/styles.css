@@ -351,3 +351,10 @@ details[open] .advanced-toggle::before { content: '▼ '; }
 .storage-badge { font-size: 0.7rem; background: var(--surface); border: 1px solid var(--border); color: var(--muted); padding: 0.1rem 0.4rem; border-radius: 100px; }
 .storage-check { color: var(--accent); font-weight: 700; font-size: 0.9rem; }
 .storage-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.5; margin: 0; }
+
+/* ── Storage config ───────────────────────────────────── */
+.storage-security-note {
+  font-size: 0.78rem; color: var(--muted);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0.5rem 0.75rem; margin-top: 0.75rem;
+}

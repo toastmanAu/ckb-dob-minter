@@ -5,8 +5,9 @@ import { theme } from './lib/theme.js';
 import { NodePanel }    from './components/NodePanel.jsx';
 import { FilesPanel }   from './components/FilesPanel.jsx';
 import { ClusterPanel } from './components/ClusterPanel.jsx';
-import { StoragePanel } from './components/StoragePanel.jsx';
-import { CostPanel }    from './components/CostPanel.jsx';
+import { StoragePanel }       from './components/StoragePanel.jsx';
+import { StorageConfigPanel }  from './components/StorageConfigPanel.jsx';
+import { CostPanel }           from './components/CostPanel.jsx';
 import { MetaPanel, DEFAULT_META } from './components/MetaPanel.jsx';
 import { WalletPanel }  from './components/WalletPanel.jsx';
 import { MintPanel }    from './components/MintPanel.jsx';
@@ -17,7 +18,8 @@ import { mintDOBs } from './lib/minter.js';
 function AppInner({ network, setNetwork }) {
   const [meta,        setMeta]        = useState(DEFAULT_META);
   const [cluster,     setCluster]     = useState(null);   // null | { id, name, txHash? }
-  const [storageMode, setStorageMode] = useState('inline');
+  const [storageMode,   setStorageMode]   = useState('inline');
+  const [storageConfig, setStorageConfig] = useState({});
   const [mintState, setMintState] = useState({
     status: 'idle', progress: '', current: 0, total: 0, results: [], error: '',
   });
@@ -90,6 +92,8 @@ function AppInner({ network, setNetwork }) {
         files,
         clusterId: cluster?.id || meta.clusterId || '',
         toLock,
+        storageMode,
+        storageConfig,
         onProgress: (idx, total, msg) => {
           setMintState(s => ({ ...s, progress: msg, current: idx, total }));
         },
@@ -133,6 +137,7 @@ function AppInner({ network, setNetwork }) {
           onRemove={removeFile} onOpen={openPicker}
         />
         <StoragePanel storageMode={storageMode} onChange={setStorageMode} />
+        <StorageConfigPanel storageMode={storageMode} config={storageConfig} onChange={setStorageConfig} />
         <ClusterPanel signer={signer} cluster={cluster} onChange={setCluster} />
         <CostPanel
           files={files} storageMode={storageMode}
