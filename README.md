@@ -1,93 +1,147 @@
-# ckb-dob-minter
+# CKB DOB Minter
 
-Browser-based DOB (Digital Object) minting tool for Nervos CKB.
+A fully open-source, self-hostable minting UI for [Spore Protocol](https://docs.spore.pro) DOBs (Digital Objects) on Nervos CKB.
 
-Mint fully on-chain digital objects from your own CKB node — no reliance on third-party infrastructure.
+Content is stored **fully on-chain** inside the CKB cell — no IPFS, no external URLs, no links that rot. Backed by real CKB capacity, redeemable when melted.
 
-## What it does
+**[Live demo →](https://wyltekindustries.com/dob-minter)** (Wyltek Industries deployment)
 
-- Auto-discovers your local CKB node (localhost:8114 / :8117 / custom URL)
-- Falls back to public RPC if no local node is found
-- Accepts any file up to 500KB (image, text, JSON, binary)
-- Stores content **fully on-chain** in a Spore Protocol cell
-- Shows estimated CKB cost before minting
-- Connects via JoyID (passkey) or MetaMask
+![CKB DOB Minter screenshot](docs/screenshot.png)
 
-## Stack
+---
 
-| Layer | Package |
-|-------|---------|
-| Minting | `@spore-sdk/core` (Spore Protocol TypeScript SDK) |
-| Wallet | `@ckb-ccc/connector-react` (JoyID + MetaMask) |
-| Node discovery | custom `node-finder.js` |
-| Build | Vite + `vite-plugin-node-polyfills` (Lumos needs Node polyfills in browser) |
+## Features
 
-## DOB Cell Structure
+- 🖼️ **Single & batch mint** — drop multiple files, mint them all in one session
+- 📦 **Collections** — create a new cluster or attach to an existing one
+- 👛 **JoyID + any CKB wallet** via CCC connector (MetaMask, hardware wallets, etc.)
+- 🌐 **Your own node** — connects to your local CKB node, no third-party RPC
+- 🎨 **Fully themeable** — change colours, logo, footer, feature flags in one file
+- 🔓 **MIT licensed** — fork it, white-label it, ship it
 
-```
-data:
-  content-type: "image/png"   # MIME type
-  content: <bytes>            # your file, fully on-chain
-  cluster_id: <optional>      # collection ID
-type:
-  code_hash: SPORE_TYPE_DATA_HASH
-  args: SPORE_ID
-lock:
-  <your lock script>
+---
+
+## Fork & customise
+
+### 1. Clone
+```bash
+git clone https://github.com/toastmanAu/ckb-dob-minter
+cd ckb-dob-minter
+npm install
 ```
 
-## Dev
+### 2. Edit `theme.config.js`
+
+Everything visual lives here — no React knowledge required:
+
+```js
+// theme.config.js
+export default {
+  siteName: 'My NFT Minter',
+  logoText: 'My NFT Minter',
+  logoIcon: '/my-logo.png',       // drop your logo in /public/
+
+  colors: {
+    accent:  '#ff6b35',           // your brand colour
+    bg:      '#0a0a0a',
+    surface: '#141414',
+    // ...full list in the file
+  },
+
+  links: {
+    site:   'https://mysite.com',
+    github: 'https://github.com/me/my-minter',
+  },
+
+  footer: {
+    show: true,
+    text: 'Powered by Nervos CKB',
+    links: [
+      { label: 'My Site', url: 'https://mysite.com' },
+    ],
+  },
+
+  features: {
+    showExplainer:  true,
+    defaultNetwork: 'mainnet',   // start on mainnet
+    allowTestnet:   false,       // hide testnet toggle
+  },
+};
+```
+
+### 3. Run dev server
+```bash
+npm run dev
+```
+
+### 4. Deploy
+```bash
+npm run build
+# dist/ folder → deploy to GitHub Pages, Vercel, Netlify, Cloudflare Pages, your own server
+```
+
+---
+
+## Cost estimates
+
+Spore Protocol stores content using CKB's capacity model (1 byte on-chain = 1 CKB locked).
+Molecule encoding roughly doubles the content byte size:
+
+| Image size | CKB locked per DOB | At $0.005/CKB |
+|------------|-------------------|---------------|
+| 10 KB      | ~520 CKB          | ~$2.60        |
+| 50 KB      | ~2,400 CKB        | ~$12          |
+| 80 KB      | ~3,820 CKB        | ~$19          |
+| 100 KB     | ~4,700 CKB        | ~$23.50       |
+
+CKB is **not spent** — it's locked inside the DOB cell. Melt the DOB to reclaim it.
+
+---
+
+## Architecture
+
+```
+src/
+  App.jsx                  — main layout, mint orchestration
+  components/
+    NodePanel.jsx          — CKB node connection
+    FilesPanel.jsx         — file drop zone, multi-file
+    ClusterPanel.jsx       — collection create/use
+    MetaPanel.jsx          — recipient, cluster ID, fee rate
+    WalletPanel.jsx        — CCC wallet connector
+    MintPanel.jsx          — single-file review + mint
+  hooks/
+    useFilesInput.js       — file selection + cost estimate
+    useNodeFinder.js       — node auto-discovery
+  lib/
+    minter.js              — core mint logic (createCluster, mintDOB, mintDOBs)
+    theme.js               — applies theme.config.js to CSS variables
+theme.config.js            — ← edit this to customise your deployment
+```
+
+### Key implementation notes
+
+- **`clusterMode: 'clusterCell'`** — required when minting into a cluster. The cluster cell is spent and recreated in the same tx to prove ownership. Without this, `createSpore` throws.
+- **`to` must be a `Script`** — pass `(await ccc.Address.fromString(addr, client)).script`, not the Address object.
+- **Molecule encoding** — on-chain storage is ~2.2× the raw file bytes. The cost estimator accounts for this.
+- **`completeFeeBy`** — must be called after `createSpore`/`createSporeCluster` and before `sendTransaction`.
+
+---
+
+## Local development
+
+Requires a running CKB node or use the public testnet RPC. The app auto-discovers local nodes on common ports (8114, 8115).
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm run build    # dist/
+npm run dev        # http://localhost:5173
+npm run build      # production build → dist/
 ```
 
-## Cost
+---
 
-1 byte of content ≈ 1 CKB capacity. Base overhead ≈ 96 CKB.
-- 10KB image → ~106 CKB (~$0.05)
-- All redeemable — burn the DOB to get CKB back.
+## License
 
-## Wyltek Hardware DOB Format
+MIT — fork it, ship it, white-label it. Attribution appreciated but not required.
 
-For hardware provenance DOBs, use `content-type: application/json` with:
-
-```json
-{
-  "device": "ESP32-2432S028R",
-  "serial": "WY-2026-001",
-  "firmware": "0.1.0",
-  "firmware_hash": "0x...",
-  "test_results": { "flash": "ok", "wifi": "ok" },
-  "minted_by": "ckb1q..."
-}
-```
-
-## Status
-
-- [x] UI shell — node panel, file drop, wallet slot, mint button
-- [x] Node auto-discovery (`node-finder.js`)
-- [x] Cost estimation
-- [x] Minting logic scaffold (`minter.js`)
-- [ ] Wallet connection (CKB-CCC wiring)
-- [ ] End-to-end testnet mint
-- [ ] Cluster / collection support
-- [ ] Hardware provenance JSON template
-- [ ] wyltekindustries.com integration
-
-## Reference
-
-- [Spore Protocol docs](https://docs.spore.pro)
-- [spore-sdk](https://github.com/sporeprotocol/spore-sdk)
-- [Create DOB tutorial — Nervos docs](https://docs.nervos.org/docs/dapp/create-dob)
-- [DOB Cookbook](https://github.com/sporeprotocol/dob-cookbook)
-
-## First mint
-
-First DOB minted on CKB Testnet — 2026-03-03
-
-- **TX:** `0x74bf8469fd4e2533df6432eb70cc8616e5facffffc63a0c62cc8a9d33b48b62b`
-- **Spore ID:** `0xc7a3c0aa498bed3417580201bdc2508a7e48d13fe79e1c2bcf1e40a357f781a6`
-- Explorer: https://testnet.explorer.nervos.org/nft-info/0xc7a3c0aa498bed3417580201bdc2508a7e48d13fe79e1c2bcf1e40a357f781a6
+Built by [Wyltek Industries](https://wyltekindustries.com) on Nervos CKB.

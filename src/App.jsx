@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useCcc, ccc } from '@ckb-ccc/connector-react';
+import { theme } from './lib/theme.js';
 
 import { NodePanel }   from './components/NodePanel.jsx';
 import { FilesPanel }  from './components/FilesPanel.jsx';
@@ -102,7 +103,12 @@ function AppInner({ network, setNetwork }) {
     <div className="app">
       <header>
         <div className="header-inner">
-          <div className="logo">CKB <span>DOB</span> Minter</div>
+          <div className="logo">
+            {theme.logoIcon
+              ? <img src={theme.logoIcon} alt={theme.siteName} style={{height:'1.6rem',marginRight:'0.5rem',verticalAlign:'middle'}}/>
+              : null}
+            {theme.logoText || 'CKB DOB Minter'}
+          </div>
           <div className="header-right">
             <div className="network-toggle">
               {['mainnet','testnet'].map(n => (
@@ -132,21 +138,38 @@ function AppInner({ network, setNetwork }) {
           mintState={mintState} onMint={handleMint}
         />
 
-        <div className="card explainer-card">
-          <div className="explainer">
-            {[
-              ['⛓️','Fully on-chain','Content lives inside the CKB cell — no IPFS, no URLs that break.'],
-              ['💎','Intrinsic value','Backed by real CKB. Burn the DOB any time to reclaim storage deposit.'],
-              ['🔒','Immutable','Once minted, content cannot be changed. Permanent by design.'],
-              ['🌐','Your node','Transactions go through your own CKB node. No third-party dependency.'],
-            ].map(([icon,title,desc]) => (
-              <div key={title} className="explainer-item">
-                <span className="explainer-icon">{icon}</span>
-                <div><h4>{title}</h4><p>{desc}</p></div>
-              </div>
-            ))}
+        {(theme.features?.showExplainer !== false) && (
+          <div className="card explainer-card">
+            <div className="explainer">
+              {(theme.explainerItems || [
+                ['⛓️','Fully on-chain','Content lives inside the CKB cell — no IPFS, no URLs that break.'],
+                ['💎','Intrinsic value','Backed by real CKB. Burn the DOB any time to reclaim storage deposit.'],
+                ['🔒','Immutable','Once minted, content cannot be changed. Permanent by design.'],
+                ['🌐','Your node','Transactions go through your own CKB node. No third-party dependency.'],
+              ]).map(([icon,title,desc]) => (
+                <div key={title} className="explainer-item">
+                  <span className="explainer-icon">{icon}</span>
+                  <div><h4>{title}</h4><p>{desc}</p></div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {(theme.footer?.show !== false) && (
+          <footer className="site-footer">
+            <span>{theme.footer?.text || 'Built on Nervos CKB · Spore Protocol'}</span>
+            <div className="footer-links">
+              {(theme.footer?.links || [
+                { label: 'Spore Docs',   url: 'https://docs.spore.pro' },
+                { label: 'CKB Explorer', url: 'https://explorer.nervos.org' },
+                { label: 'GitHub',       url: theme.links?.github || 'https://github.com/toastmanAu/ckb-dob-minter' },
+              ]).map(l => (
+                <a key={l.label} href={l.url} target="_blank" rel="noreferrer">{l.label}</a>
+              ))}
+            </div>
+          </footer>
+        )}
       </main>
     </div>
   );
