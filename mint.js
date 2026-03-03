@@ -1,9 +1,15 @@
 /**
  * Wyltek Founding Member DOB Mint Script
- * Testnet dry run — 1 cluster + 5 DOBs to 5 recipient addresses
+ * Testnet dry run — 1 cluster + N DOBs to N recipient addresses
  *
  * Usage:
- *   node mint.js [--dry-run] [--mainnet]
+ *   node mint.js [--dry-run] [--mainnet] [--ckbfs]
+ *
+ * --ckbfs  : publish image via CKBFS (witnesses-based, ~200 CKB flat) then
+ *            mint Spore DOBs with contentType="application/ckbfs" and the
+ *            CKBFS typeId as content. This is the mainnet-viable path.
+ *            Without --ckbfs, image is embedded directly in the Spore cell
+ *            (only works for tiny images < ~500 CKB).
  *
  * Logs all tx hashes + explorer links. In dry-run mode, builds and
  * validates the tx but does not broadcast.
@@ -13,11 +19,13 @@ import { ccc } from '@ckb-ccc/core';
 import { createSpore, createSporeCluster } from '@ckb-ccc/spore';
 import fs from 'fs';
 import path from 'path';
+import { ckbfsPublish, ckbfsEstimateCost } from '../workspace/ckb-dob-minter/src/lib/ckbfs.js';
 
 // ── Config ─────────────────────────────────────────────────────────────────
 
 const IS_MAINNET  = process.argv.includes('--mainnet');
 const DRY_RUN     = process.argv.includes('--dry-run');
+const USE_CKBFS   = process.argv.includes('--ckbfs');
 const NETWORK     = IS_MAINNET ? 'mainnet' : 'testnet';
 const EXPLORER    = IS_MAINNET
   ? 'https://explorer.nervos.org/transaction'
@@ -70,7 +78,13 @@ async function main() {
   const imageBytes = fs.readFileSync(IMAGE_PATH);
   const mimeType   = IMAGE_PATH.endsWith('.png') ? 'image/png' : 'image/jpeg';
   log(`Image size: ${(imageBytes.length / 1024).toFixed(1)} KB (${mimeType})`);
-  log(`Estimated CKB per DOB: ~${Math.ceil(imageBytes.length / 100) + 200} CKB`);
+  log(`Mode: ${USE_CKBFS ? 'CKBFS (witnesses-based)' : 'Direct embed in Spore cell'}`);
+  if (USE_CKBFS) {
+    const est = ckbfsEstimateCost(imageBytes);
+    log(`CKBFS estimate: witness=${est.witnessBytes} bytes, cell=${est.cellCapacityCkb} CKB locked`);
+  } else {
+    log(`Estimated CKB per DOB: ~${Math.ceil(imageBytes.length / 100) + 200} CKB`);
+  }
   log('');
 
   // Setup client + signer
@@ -134,6 +148,44 @@ async function main() {
 
   log('');
 
+  // ── Step 1.5: CKBFS publish (if --ckbfs flag) ──────────────────────────
+  let sporeContent = imageBytes;
+  let sporeMimeType = mimeType;
+
+  if (USE_CKBFS) {
+    log('Step 1.5: Publishing image to CKBFS (witnesses-based storage)...');
+    if (DRY_RUN) {
+      log('  [DRY RUN] Would publish to CKBFS — skipping');
+      sporeContent = new TextEncoder().encode('ckbfs://0x' + '00'.repeat(32));
+      sporeMimeType = 'application/ckbfs';
+    } else {
+      try {
+        const ckbfsResult = await ckbfsPublish({
+          signer,
+          fileBytes: imageBytes,
+          contentType: mimeType,
+          filename: path.basename(IMAGE_PATH),
+          mainnet: IS_MAINNET,
+        });
+        log(`  ✅ CKBFS published!`);
+        log(`  TypeID   : ${ckbfsResult.typeId}`);
+        log(`  TxHash   : ${ckbfsResult.txHash}`);
+        log(`  Explorer : ${ckbfsResult.explorerUrl}`);
+        log(`  Checksum : 0x${ckbfsResult.checksum.toString(16).padStart(8,'0')}`);
+        log(`  Cell cap : ${ckbfsResult.capacityCkb} CKB (locked permanently)`);
+        log(`  Waiting for confirmation...`);
+        await signer.client.waitTransaction(ckbfsResult.txHash);
+        log(`  ✅ Confirmed.`);
+        // DOBs reference the CKBFS file by typeId
+        sporeContent = new TextEncoder().encode(`ckbfs://${ckbfsResult.typeId}`);
+        sporeMimeType = 'application/ckbfs';
+      } catch (e) {
+        die('CKBFS publish failed: ' + e.message);
+      }
+    }
+    log('');
+  }
+
   // ── Step 2: Mint DOBs ──────────────────────────────────────────────────
   log(`Step 2: Minting ${RECIPIENTS.length} DOBs...`);
   log('');
@@ -164,8 +216,8 @@ async function main() {
         const { tx, id } = await createSpore({
           signer,
           data: {
-            contentType: mimeType,
-            content: new Uint8Array(imageBytes),
+            contentType: sporeMimeType,
+            content: new Uint8Array(sporeContent),
             clusterId: ccc.hexFrom(clusterId),
           },
           to: (await ccc.Address.fromString(recipient, client)).script,
