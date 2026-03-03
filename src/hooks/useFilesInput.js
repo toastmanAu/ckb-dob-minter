@@ -3,7 +3,7 @@
  * Returns an array of file objects; each has: name, type, size, content, preview, costCKB
  */
 import { useState, useCallback, useRef } from 'react';
-import { estimateCost } from '../lib/minter.js';
+import { estimateCostCKB } from '../lib/minter.js';
 
 const MAX_BYTES = 500 * 1024; // 500KB Spore limit per file
 
@@ -29,7 +29,7 @@ function processRawFile(raw) {
         preview,
         isImage: raw.type.startsWith('image/'),
         isText:  raw.type.startsWith('text/') || raw.type === 'application/json',
-        costCKB: estimateCost(content.length),
+        costCKB: estimateCostCKB(content.length),
         error:   null,
       });
     };

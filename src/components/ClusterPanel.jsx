@@ -68,6 +68,8 @@ export function ClusterPanel({ signer, cluster, onChange }) {
       });
       await tx.completeFeeBy(signer, 1000n);
       const txHash = await signer.sendTransaction(tx);
+      // Wait for cluster to be confirmed before minting into it
+      await signer.client.waitTransaction(txHash);
       onChange({ id, name: name.trim(), txHash });
     } catch (e) {
       setCreateError(e.message || String(e));

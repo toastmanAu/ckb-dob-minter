@@ -70,10 +70,22 @@ function AppInner({ network, setNetwork }) {
     if (!canMint) return;
     setMintState({ status: 'minting', progress: 'Starting…', current: 0, total: files.length, results: [], error: '' });
     try {
+      // Resolve recipient lock (if set in meta, otherwise sender keeps DOB)
+      let toLock;
+      if (meta.recipient?.trim()) {
+        try {
+          const toAddr = await ccc.Address.fromString(meta.recipient.trim(), signer.client);
+          toLock = toAddr.script;
+        } catch (e) {
+          throw new Error(`Invalid recipient address: ${e.message}`);
+        }
+      }
+
       const results = await mintDOBs({
         signer,
         files,
         clusterId: cluster?.id || meta.clusterId || '',
+        toLock,
         onProgress: (idx, total, msg) => {
           setMintState(s => ({ ...s, progress: msg, current: idx, total }));
         },
