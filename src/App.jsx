@@ -2,19 +2,22 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useCcc, ccc } from '@ckb-ccc/connector-react';
 import { theme } from './lib/theme.js';
 
-import { NodePanel }   from './components/NodePanel.jsx';
-import { FilesPanel }  from './components/FilesPanel.jsx';
+import { NodePanel }    from './components/NodePanel.jsx';
+import { FilesPanel }   from './components/FilesPanel.jsx';
 import { ClusterPanel } from './components/ClusterPanel.jsx';
+import { StoragePanel } from './components/StoragePanel.jsx';
+import { CostPanel }    from './components/CostPanel.jsx';
 import { MetaPanel, DEFAULT_META } from './components/MetaPanel.jsx';
-import { WalletPanel } from './components/WalletPanel.jsx';
-import { MintPanel }   from './components/MintPanel.jsx';
+import { WalletPanel }  from './components/WalletPanel.jsx';
+import { MintPanel }    from './components/MintPanel.jsx';
 import { useNodeFinder }  from './hooks/useNodeFinder.js';
 import { useFilesInput }  from './hooks/useFilesInput.js';
 import { mintDOBs } from './lib/minter.js';
 
 function AppInner({ network, setNetwork }) {
-  const [meta,     setMeta]     = useState(DEFAULT_META);
-  const [cluster,  setCluster]  = useState(null);  // null | { id, name, txHash? }
+  const [meta,        setMeta]        = useState(DEFAULT_META);
+  const [cluster,     setCluster]     = useState(null);   // null | { id, name, txHash? }
+  const [storageMode, setStorageMode] = useState('inline');
   const [mintState, setMintState] = useState({
     status: 'idle', progress: '', current: 0, total: 0, results: [], error: '',
   });
@@ -129,7 +132,12 @@ function AppInner({ network, setNetwork }) {
           onInputChange={onInputChange} onDrop={onDrop} onDragOver={onDragOver}
           onRemove={removeFile} onOpen={openPicker}
         />
+        <StoragePanel storageMode={storageMode} onChange={setStorageMode} />
         <ClusterPanel signer={signer} cluster={cluster} onChange={setCluster} />
+        <CostPanel
+          files={files} storageMode={storageMode}
+          cluster={cluster} network={network}
+        />
         <MetaPanel meta={meta} onChange={setMeta} />
         <WalletPanel signer={signer} address={address} onDisconnect={disconnect} onOpen={open} />
         <BatchMintPanel
