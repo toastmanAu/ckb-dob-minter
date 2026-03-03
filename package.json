@@ -13,6 +13,7 @@
     "@ckb-ccc/connector-react": "^1.0.34",
     "@ckb-ccc/core": "^1.12.5",
     "@ckb-ccc/joy-id": "^1.0.32",
+    "@ckbfs/api": "github:nervape/ckbfs-api",
     "@exact-realty/multipart-parser": "^1.0.14",
     "@spore-sdk/core": "^0.2.0",
     "react": "^18.3.1",

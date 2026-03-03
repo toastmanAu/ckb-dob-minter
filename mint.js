@@ -161,7 +161,7 @@ async function main() {
     } else {
       try {
         const ckbfsResult = await ckbfsPublish({
-          signer,
+          privateKey: MINTER_PRIVKEY,
           fileBytes: imageBytes,
           contentType: mimeType,
           filename: path.basename(IMAGE_PATH),
