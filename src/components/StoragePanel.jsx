@@ -17,7 +17,7 @@ const MODES = [
     icon: '🗄️',
     label: 'CKBFS',
     desc: 'Content stored in CKB witnesses via CKBFS protocol. Spore cell stores a ckbfs:// URI. Native CKB.',
-    badge: 'coming soon',
+    badge: null,
   },
   {
     id: 'ipfs',
