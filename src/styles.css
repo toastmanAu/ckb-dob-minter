@@ -162,7 +162,7 @@ details[open] .advanced-toggle::before { content: '▼ '; }
 .wallet-connected { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
 .wallet-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,229,160,.1); border: 1px solid rgba(0,229,160,.3); color: var(--green); padding: .3rem .8rem; border-radius: 6px; font-size: .82rem; font-weight: 600; }
 .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
-.wallet-address { font-size: .78rem; color: var(--muted); word-break: break-all; flex: 1; }
+.wallet-address { font-size: .78rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
 
 /* ── Preflight checklist ───────────────────────────────── */
 .preflight { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }

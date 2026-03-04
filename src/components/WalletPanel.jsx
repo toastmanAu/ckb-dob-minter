@@ -6,7 +6,7 @@ export function WalletPanel({ signer, address, onDisconnect, onOpen }) {
         <div className="card-title">Wallet</div>
         <div className="wallet-connected">
           <span className="wallet-badge"><span className="badge-dot" />Connected</span>
-          <code className="wallet-address">{address}</code>
+          <code className="wallet-address" title={address}>{address ? `${address.slice(0,12)}…${address.slice(-8)}` : ""}</code>
           <button className="btn-ghost btn-sm" onClick={onDisconnect}>Disconnect</button>
         </div>
       </div>
