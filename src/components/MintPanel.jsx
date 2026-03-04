@@ -1,8 +1,10 @@
 /**
  * MintPanel — pre-flight summary + mint button + result display
  */
-export function MintPanel({ canMint, reasons, file, meta, nodeInfo, network, mintState, onMint }) {
-  const { status, progress, txHash, sporeId, error } = mintState;
+import { CkbfsConfirmPanel } from './CkbfsConfirmPanel';
+
+export function MintPanel({ canMint, reasons, file, meta, nodeInfo, network, mintState, onMint, storageMode }) {
+  const { status, progress, txHash, sporeId, ckbfsTypeId, error } = mintState;
   const explorerBase = network === 'testnet'
     ? 'https://pudge.explorer.nervos.org'
     : 'https://explorer.nervos.org';
@@ -67,6 +69,15 @@ export function MintPanel({ canMint, reasons, file, meta, nodeInfo, network, min
             Mint another
           </button>
         </div>
+      )}
+
+      {/* CKBFS on-chain verifier — spawns beneath result when storage=ckbfs */}
+      {status === 'success' && storageMode === 'ckbfs' && txHash && (
+        <CkbfsConfirmPanel
+          txHash={txHash}
+          typeId={ckbfsTypeId}
+          network={network}
+        />
       )}
     </div>
   );

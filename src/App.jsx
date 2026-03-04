@@ -149,6 +149,7 @@ function AppInner({ network, setNetwork }) {
           canMint={canMint} reasons={reasons} files={files} cluster={cluster}
           meta={meta} nodeInfo={nodeInfo} network={network}
           mintState={mintState} onMint={handleMint}
+          storageMode={storageMode}
         />
 
         {(theme.features?.showExplainer !== false) && (
@@ -191,7 +192,9 @@ function AppInner({ network, setNetwork }) {
 /**
  * BatchMintPanel — replaces MintPanel, shows per-file progress + results list
  */
-function BatchMintPanel({ canMint, reasons, files, cluster, meta, nodeInfo, network, mintState, onMint }) {
+import { CkbfsConfirmPanel } from './components/CkbfsConfirmPanel.jsx';
+
+function BatchMintPanel({ canMint, reasons, files, cluster, meta, nodeInfo, network, mintState, onMint, storageMode }) {
   const { status, progress, current, total, results, error } = mintState;
   const isMinting = status === 'minting';
 
@@ -251,6 +254,14 @@ function BatchMintPanel({ canMint, reasons, files, cluster, meta, nodeInfo, netw
               <span className="result-name">{r.name}</span>
               <div className="mono small">Spore ID: {r.sporeId}</div>
               <div className="mono small">TX: {r.txHash}</div>
+              {/* CKBFS on-chain verifier + live preview */}
+              {storageMode === 'ckbfs' && (
+                <CkbfsConfirmPanel
+                  txHash={r.txHash}
+                  typeId={r.ckbfsTypeId}
+                  network={network}
+                />
+              )}
             </div>
           ))}
         </div>

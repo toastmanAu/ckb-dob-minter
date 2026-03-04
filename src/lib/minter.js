@@ -54,6 +54,7 @@ export async function mintDOB(p) {
   let sporeContentType = p.contentType;
 
   // ── External storage upload ─────────────────────────────────────────────
+  let ckbfsTypeId = null;
   if (p.storageMode && p.storageMode !== 'inline') {
     log(`Uploading to ${p.storageMode}…`);
     const result = await uploadToProvider({
@@ -67,6 +68,10 @@ export async function mintDOB(p) {
     sporeContent     = new TextEncoder().encode(result.uri);
     sporeContentType = 'text/uri-list';
     log(`Stored at ${result.uri}`);
+    // Capture CKBFS TypeID for post-mint viewer
+    if (p.storageMode === 'ckbfs' && result.meta?.typeId) {
+      ckbfsTypeId = result.meta.typeId;
+    }
   }
 
   // ── Build Spore tx ──────────────────────────────────────────────────────
@@ -86,7 +91,7 @@ export async function mintDOB(p) {
   await tx.completeFeeBy(p.signer, 1000n);
   log('Signing & broadcasting…');
   const txHash = await p.signer.sendTransaction(tx);
-  return { txHash, sporeId: id };
+  return { txHash, sporeId: id, ckbfsTypeId };
 }
 
 /**
