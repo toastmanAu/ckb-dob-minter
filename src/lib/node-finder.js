@@ -8,10 +8,11 @@ const LOCALHOST_CANDIDATES = [
   'http://127.0.0.1:8114',
   'http://localhost:8117',
   'http://localhost:9000',
+  'http://localhost:9001',
   'http://localhost:28114',
 ];
 
-const LAN_PORTS    = [8114, 28114];
+const LAN_PORTS    = [8114, 28114, 9001];
 const LAN_PREFIXES = ['192.168.68', '192.168.1', '192.168.0', '10.0.0', '10.0.1'];
 const LAN_SUFFIXES = [1, 2, 50, 87, 88, 91, 93, 100, 105, 200, 254];
 const BATCH_SIZE   = 10;
