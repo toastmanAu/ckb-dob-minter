@@ -254,25 +254,45 @@ function BatchMintPanel({ canMint, reasons, files, cluster, meta, nodeInfo, netw
       {status === 'success' && results.length > 0 && (
         <div className="results-list">
           <div className="results-title">✅ {results.length} DOB{results.length > 1 ? 's' : ''} minted!</div>
-          {results.map((r, i) => (
-            <div key={i} className="result-row">
-              <span className="result-name">{r.name}</span>
-              <div className="mono small">Spore ID: {r.sporeId}</div>
-              <div className="mono small">TX: {r.txHash}</div>
-              {/* CKBFS on-chain verifier + live preview */}
-              {storageMode === 'ckbfs' && (
-                <CkbfsConfirmPanel
-                  txHash={r.txHash}
-                  typeId={r.ckbfsTypeId}
-                  network={network}
-                />
-              )}
-            </div>
-          ))}
+          {results.map((r, i) => {
+            const explorerBase = network === 'mainnet'
+              ? 'https://explorer.nervos.org/transaction'
+              : 'https://testnet.explorer.nervos.org/transaction';
+            const short = h => h ? `${h.slice(0,10)}…${h.slice(-8)}` : '—';
+            const copyHash = async (h, el) => {
+              await navigator.clipboard.writeText(h).catch(() => {});
+              const orig = el.textContent; el.textContent = '✓';
+              setTimeout(() => { el.textContent = orig; }, 1500);
+            };
+            return (
+              <div key={i} className="result-row">
+                <span className="result-name">{r.name}</span>
+                <div className="result-hash-row">
+                  <span className="result-hash-label">Spore ID</span>
+                  <code className="result-hash-val">{short(r.sporeId)}</code>
+                  <button className="hash-copy-btn" onClick={e => copyHash(r.sporeId, e.target)}>⧉</button>
+                </div>
+                <div className="result-hash-row">
+                  <span className="result-hash-label">TX</span>
+                  <a className="result-hash-val result-hash-link"
+                     href={`${explorerBase}/${r.txHash}`} target="_blank" rel="noreferrer">
+                    {short(r.txHash)}
+                  </a>
+                  <button className="hash-copy-btn" onClick={e => copyHash(r.txHash, e.target)}>⧉</button>
+                </div>
+                {/* CKBFS on-chain verifier + live preview */}
+                {storageMode === 'ckbfs' && (
+                  <CkbfsConfirmPanel
+                    txHash={r.txHash}
+                    typeId={r.ckbfsTypeId}
+                    network={network}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
-
-      {/* Error */}
       {status === 'error' && <div className="status-error" style={{ marginTop: '0.75rem' }}>{error}</div>}
     </div>
   );

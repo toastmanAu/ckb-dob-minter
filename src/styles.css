@@ -199,6 +199,26 @@ details[open] .advanced-toggle::before { content: '▼ '; }
 .result-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1.1rem; margin-top: .8rem; }
 .result-header { font-weight: 700; font-size: 1rem; color: var(--green); margin-bottom: .8rem; }
 .result-row { margin-bottom: .6rem; }
+.result-hash-row {
+  display: flex; align-items: center; gap: .4rem;
+  margin-top: .25rem; min-width: 0;
+}
+.result-hash-label {
+  font-size: .72rem; color: var(--muted); white-space: nowrap; min-width: 4rem;
+}
+.result-hash-val {
+  font-family: 'JetBrains Mono', monospace; font-size: .78rem;
+  color: var(--text); white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; min-width: 0; flex: 1;
+}
+.result-hash-link { color: var(--accent); text-decoration: none; }
+.result-hash-link:hover { text-decoration: underline; }
+.hash-copy-btn {
+  background: none; border: none; color: var(--muted);
+  font-size: .75rem; cursor: pointer; padding: 0 .2rem;
+  flex-shrink: 0; transition: color .15s;
+}
+.hash-copy-btn:hover { color: var(--accent); }
 .result-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); display: block; margin-bottom: .2rem; }
 .result-value { font-family: monospace; font-size: .8rem; color: var(--accent); word-break: break-all; }
 
