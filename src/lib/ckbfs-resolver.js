@@ -200,8 +200,8 @@ export async function resolveCKBFS(typeId, network, onProgress = () => {}) {
     contentType: meta.contentType,
     filename:    meta.filename,
     checksum:    meta.checksum,
-    witnessIdx:  meta.indexes[0],
-    chunkCount:  meta.indexes.length,
+    witnessIdx:  meta.indexes ? meta.indexes[0] : (meta.index ?? 1),
+    chunkCount:  meta.indexes ? meta.indexes.length : chunks.length,
     txHash:      cell.out_point.tx_hash,
   };
 }
