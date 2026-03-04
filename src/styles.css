@@ -333,7 +333,7 @@ details[open] .advanced-toggle::before { content: '▼ '; }
 .footer-links a:hover { color: var(--accent); }
 
 /* ── Cost Panel ───────────────────────────────────────── */
-.cost-panel { position: sticky; top: 5rem; }
+.cost-panel { position: static; }
 .cost-panel-empty .cost-hint { color: var(--muted); font-size: 0.85rem; }
 .cost-total {
   display: flex; align-items: baseline; gap: 0.75rem;
