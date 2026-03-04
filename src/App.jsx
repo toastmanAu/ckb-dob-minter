@@ -93,7 +93,12 @@ function AppInner({ network, setNetwork }) {
         clusterId: cluster?.id || meta.clusterId || '',
         toLock,
         storageMode,
-        storageConfig,
+        storageConfig: {
+          ...storageConfig,
+          // Inject signer + network for CKBFS browser upload
+          signer,
+          mainnet: network === 'mainnet',
+        },
         onProgress: (idx, total, msg) => {
           setMintState(s => ({ ...s, progress: msg, current: idx, total }));
         },
