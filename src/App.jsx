@@ -132,6 +132,7 @@ function AppInner({ network, setNetwork }) {
       </header>
 
       <main>
+        <WalletPanel signer={signer} address={address} onDisconnect={disconnect} onOpen={open} />
         <NodePanel
           status={nodeStatus} nodeInfo={nodeInfo} progress={nodeProgress}
           error={nodeError} network={network} onCustom={connectCustom} onPublic={usePublic} onForget={forget}
@@ -149,7 +150,6 @@ function AppInner({ network, setNetwork }) {
           cluster={cluster} network={network}
         />
         <MetaPanel meta={meta} onChange={setMeta} />
-        <WalletPanel signer={signer} address={address} onDisconnect={disconnect} onOpen={open} />
         <BatchMintPanel
           canMint={canMint} reasons={reasons} files={files} cluster={cluster}
           meta={meta} nodeInfo={nodeInfo} network={network}
