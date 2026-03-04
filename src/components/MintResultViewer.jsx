@@ -240,14 +240,6 @@ export function MintResultViewer({ result, storageMode: storageModeFromProp, net
   // Use storageMode baked into result at mint time — prop may change after mint
   const storageMode = result.storageMode || storageModeFromProp;
 
-  console.log('[MintResultViewer] result:', {
-    storageMode,
-    ckbfsTypeId: result.ckbfsTypeId,
-    ckbfsTxHash: result.ckbfsTxHash,
-    sporeUri:    result.sporeUri,
-    hasInline:   !!result.inlineContent,
-  });
-
   switch (storageMode) {
     case 'inline':
       return (

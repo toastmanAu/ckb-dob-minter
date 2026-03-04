@@ -281,18 +281,6 @@ function BatchMintPanel({ canMint, reasons, files, cluster, meta, nodeInfo, netw
                   <button className="hash-copy-btn" onClick={e => copyHash(r.txHash, e.target)}>⧉</button>
                 </div>
                 <MintResultViewer result={r} storageMode={storageMode} network={network} />
-                {/* Debug panel — remove once viewer confirmed working */}
-                <details style={{marginTop:'.5rem',fontSize:'.7rem',color:'var(--muted)'}}>
-                  <summary style={{cursor:'pointer'}}>🔍 debug info</summary>
-                  <pre style={{fontSize:'.65rem',overflowX:'auto',marginTop:'.25rem',padding:'.4rem',background:'var(--surface)',borderRadius:4}}>{JSON.stringify({
-                    storageMode: r.storageMode,
-                    ckbfsTypeId: r.ckbfsTypeId || null,
-                    ckbfsTxHash: r.ckbfsTxHash ? r.ckbfsTxHash.slice(0,18)+'…' : null,
-                    sporeUri:    r.sporeUri || null,
-                    hasInline:   !!r.inlineContent,
-                    sporeContentType: r.sporeContentType,
-                  }, null, 2)}</pre>
-                </details>
               </div>
             );
           })}
