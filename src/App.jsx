@@ -11,11 +11,13 @@ import { CostPanel }           from './components/CostPanel.jsx';
 import { MetaPanel, DEFAULT_META } from './components/MetaPanel.jsx';
 import { WalletPanel }  from './components/WalletPanel.jsx';
 import { MintPanel }    from './components/MintPanel.jsx';
+import { BurnPanel }    from './components/BurnPanel.jsx';
 import { useNodeFinder }  from './hooks/useNodeFinder.js';
 import { useFilesInput }  from './hooks/useFilesInput.js';
 import { mintDOBs } from './lib/minter.js';
 
 function AppInner({ network, setNetwork }) {
+  const [mode,        setMode]        = useState('mint'); // 'mint' | 'burn'
   const [meta,        setMeta]        = useState(DEFAULT_META);
   const [cluster,     setCluster]     = useState(null);   // null | { id, name, txHash? }
   const [storageMode,   setStorageMode]   = useState(() => localStorage.getItem('ckbdob_storageMode') || 'inline');
@@ -123,6 +125,10 @@ function AppInner({ network, setNetwork }) {
             {theme.logoText || 'CKB DOB Minter'}
           </div>
           <div className="header-right">
+            <div className="network-toggle" style={{marginRight:'0.5rem'}}>
+              <button className={mode==='mint'?'active':''} onClick={()=>setMode('mint')}>Mint</button>
+              <button className={mode==='burn'?'active':''} style={mode==='burn'?{background:'#ff4560',color:'#fff'}:{}} onClick={()=>setMode('burn')}>🔥 Burn</button>
+            </div>
             <div className="network-toggle">
               {['mainnet','testnet'].map(n => (
                 <button key={n} className={network===n?'active':''} onClick={()=>setNetwork(n)}>{n}</button>
@@ -156,6 +162,9 @@ function AppInner({ network, setNetwork }) {
           </div>
         )}
         <WalletPanel signer={signer} address={address} onDisconnect={disconnect} onOpen={open} />
+        {mode === 'burn' ? (
+          <BurnPanel signer={signer} network={network} />
+        ) : (<>
         <NodePanel
           status={nodeStatus} nodeInfo={nodeInfo} progress={nodeProgress}
           error={nodeError} network={network} onCustom={connectCustom} onPublic={usePublic} onForget={forget}
@@ -212,6 +221,7 @@ function AppInner({ network, setNetwork }) {
             </div>
           </footer>
         )}
+        </>)}
       </main>
     </div>
   );
