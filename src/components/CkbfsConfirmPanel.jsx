@@ -36,13 +36,35 @@ export function CkbfsConfirmPanel({ txHash, typeId, network = 'mainnet' }) {
   const [resolveStep, setResolveStep] = useState('');
   const pollRef = useRef(null);
   const startRef = useRef(Date.now());
+  const resolvedRef = useRef(false);
 
   const explorerBase = network === 'mainnet'
     ? 'https://explorer.nervos.org/transaction'
     : 'https://pudge.explorer.nervos.org/transaction';
 
+  const resolveContent = async () => {
+    if (resolvedRef.current) return;
+    resolvedRef.current = true;
+    if (!typeId) { setPhase('done'); return; }
+    try {
+      const result = await resolveCKBFS(typeId, network, (msg) => setResolveStep(msg));
+      setContent(result);
+      setPhase('done');
+    } catch (e) {
+      setPhase('error');
+      setErrMsg('Preview failed: ' + e.message);
+    }
+  };
+
   // ── Poll for confirmation ──────────────────────────────────────
   useEffect(() => {
+    // If no txHash but we have typeId — CKBFS already confirmed, resolve directly
+    if (!txHash && typeId) {
+      setPhase('resolving');
+      setBlocksWaited(EXPECTED_BLOCKS);
+      resolveContent();
+      return;
+    }
     if (!txHash) return;
 
     const poll = async () => {
@@ -69,26 +91,10 @@ export function CkbfsConfirmPanel({ txHash, typeId, network = 'mainnet' }) {
     };
 
     pollRef.current = setInterval(poll, POLL_INTERVAL_MS);
-    poll(); // immediate first check
+    poll(); // immediate first check — catches already-confirmed tx instantly
 
     return () => clearInterval(pollRef.current);
-  }, [txHash, network]);
-
-  // ── Resolve content from chain ─────────────────────────────────
-  const resolveContent = async () => {
-    if (!typeId) {
-      setPhase('done');
-      return;
-    }
-    try {
-      const result = await resolveCKBFS(typeId, network, (msg) => setResolveStep(msg));
-      setContent(result);
-      setPhase('done');
-    } catch (e) {
-      setPhase('error');
-      setErrMsg('Content resolved — but preview failed: ' + e.message);
-    }
-  };
+  }, [txHash, typeId, network]);
 
   // ── Progress bar ───────────────────────────────────────────────
   const progressPct = phase === 'done' ? 100

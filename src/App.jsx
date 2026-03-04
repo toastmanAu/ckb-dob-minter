@@ -281,9 +281,9 @@ function BatchMintPanel({ canMint, reasons, files, cluster, meta, nodeInfo, netw
                   <button className="hash-copy-btn" onClick={e => copyHash(r.txHash, e.target)}>⧉</button>
                 </div>
                 {/* CKBFS on-chain verifier + live preview */}
-                {storageMode === 'ckbfs' && (
+                {storageMode === 'ckbfs' && r.ckbfsTypeId && (
                   <CkbfsConfirmPanel
-                    txHash={r.txHash}
+                    txHash={r.ckbfsTxHash}
                     typeId={r.ckbfsTypeId}
                     network={network}
                   />
