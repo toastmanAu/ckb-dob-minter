@@ -201,6 +201,7 @@ import { MintResultViewer } from './components/MintResultViewer.jsx';
 
 function BatchMintPanel({ canMint, reasons, files, cluster, meta, nodeInfo, network, mintState, onMint, storageMode }) {
   const { status, progress, current, total, results, error } = mintState;
+  const isMintingOrError = status === 'minting' || (status === 'error' && error);
   const isMinting = status === 'minting';
 
   const clusterId = cluster?.id || meta.clusterId || '';
@@ -286,10 +287,40 @@ function BatchMintPanel({ canMint, reasons, files, cluster, meta, nodeInfo, netw
           })}
         </div>
       )}
-      {status === 'error' && <div className="status-error" style={{ marginTop: '0.75rem' }}>{error}</div>}
+      {status === 'error' && (
+        <div className="status-error" style={{ marginTop: '0.75rem', wordBreak: 'break-all', fontSize: '0.82rem' }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      {/* Sticky mobile status bar — fixed top, visible while minting or on error */}
+      {(isMinting || (status === 'error' && error)) && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+          background: status === 'error' ? '#2d1a1a' : '#0d1f2d',
+          borderBottom: `2px solid ${status === 'error' ? '#ff4560' : '#4f8ef7'}`,
+          padding: '0.6rem 1rem',
+          display: 'flex', flexDirection: 'column', gap: '0.3rem',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
+        }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: status === 'error' ? '#ff4560' : '#4f8ef7' }}>
+            {status === 'error' ? '❌ Mint failed' : `⏳ Minting ${current}/${total}…`}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: '#ccc', wordBreak: 'break-all', lineHeight: 1.4 }}>
+            {status === 'error' ? error : progress}
+          </div>
+          {isMinting && total > 0 && (
+            <div style={{ height: 3, background: '#1e2a3a', borderRadius: 2, marginTop: '0.2rem' }}>
+              <div style={{ height: '100%', width: `${(current/total)*100}%`, background: '#4f8ef7', borderRadius: 2, transition: 'width 0.3s' }} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
+
+
 
 export default function App() {
   const [network, setNetwork] = useState('testnet');
