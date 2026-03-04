@@ -5,7 +5,14 @@
  * Protocol: CKBFS V2, code_hash 0x31e637...
  */
 
-export const CKBFS_CODE_HASH = '0x31e6376287d223b8c0410d562fb422f04d1d617b2947596a14c3d2efb7218d3a';
+// All known CKBFS code hashes (V1/V2/V3, same on mainnet + testnet)
+export const CKBFS_CODE_HASHES = [
+  '0x31e6376287d223b8c0410d562fb422f04d1d617b2947596a14c3d2efb7218d3a', // V2 (20241025)
+  '0xb5d13ffe0547c78021c01fe24dce2e959a1ed8edbca3cb93dd2e9f57fb56d695', // V3 (20250821)
+  '0xe8905ad29a02cf8befa9c258f4f941773839a618d75a64afc22059de9413f712', // V1 testnet
+  '0x685a60219309029d01182c8d57c12166e6d39ea4e18a5b0a4b7e4c42fde851cb', // V1 mainnet (if exists)
+];
+export const CKBFS_CODE_HASH = CKBFS_CODE_HASHES[0]; // default (V2)
 
 export const RPC_ENDPOINTS = {
   testnet: 'https://testnet.ckbapp.dev',
@@ -64,8 +71,11 @@ function decodeCKBFSData(hex) {
   };
 
   if (fieldCount === 4) {
+    // V3 format: { index, checksum, contentType, filename }
+    // index is the witness start index; chain is followed via nextIndex in witness
     return {
-      indexes:     [dv.getUint32(offsets[0], true)],
+      index:       dv.getUint32(offsets[0], true),
+      indexes:     null, // V3 uses nextIndex chaining, not explicit indexes array
       checksum:    dv.getUint32(offsets[1], true),
       contentType: readStr(offsets[2]),
       filename:    readStr(offsets[3]),
@@ -88,14 +98,30 @@ function decodeCKBFSData(hex) {
 
 // ── Witness content extractor ─────────────────────────────────────────────────
 
-function extractChunkFromWitness(witnessHex) {
+function extractChunkFromWitness(witnessHex, isContinuation = false) {
   const bytes = hexToBytes(witnessHex);
+  if (isContinuation) {
+    // V3 continuation: 4-byte nextIndex + content
+    return bytes.slice(4);
+  }
   const magic = new TextDecoder().decode(bytes.slice(0, 5));
   if (magic !== 'CKBFS') throw new Error('Witness missing CKBFS magic header');
   const version = bytes[5];
   // v2 (0x00): content at byte 6
   // v3 (0x03): content at byte 50 (6 + 32 prev_tx_hash + 4 prev_idx + 4 prev_checksum + 4 next_idx)
   return bytes.slice(version === 0x03 ? 50 : 6);
+}
+
+function getNextIndex(witnessHex, isContinuation = false) {
+  const bytes = hexToBytes(witnessHex);
+  if (isContinuation) {
+    return new DataView(bytes.buffer, bytes.byteOffset, 4).getUint32(0, true);
+  }
+  // V3 head: nextIndex at offset 46
+  if (bytes[5] === 0x03) {
+    return new DataView(bytes.buffer, bytes.byteOffset + 46, 4).getUint32(0, true);
+  }
+  return 0; // V2 — no nextIndex chaining needed
 }
 
 // ── Main resolve ──────────────────────────────────────────────────────────────
@@ -107,13 +133,18 @@ function extractChunkFromWitness(witnessHex) {
 export async function resolveCKBFS(typeId, network, onProgress = () => {}) {
   onProgress('Searching for CKBFS cell…');
 
-  const result = await ckbRpc(network, 'get_cells', [{
-    script: { code_hash: CKBFS_CODE_HASH, hash_type: 'data1', args: typeId },
-    script_type: 'type',
-    filter: null,
-  }, 'asc', '0x1']);
-
-  const cells = result?.objects || [];
+  // Try all known CKBFS code hashes (V1/V2/V3)
+  let cells = [];
+  let foundCodeHash = null;
+  for (const codeHash of CKBFS_CODE_HASHES) {
+    const result = await ckbRpc(network, 'get_cells', [{
+      script: { code_hash: codeHash, hash_type: 'data1', args: typeId },
+      script_type: 'type',
+      filter: null,
+    }, 'asc', '0x1']);
+    cells = result?.objects || [];
+    if (cells.length) { foundCodeHash = codeHash; break; }
+  }
   if (!cells.length) throw new Error(`No CKBFS cell found for ${typeId.slice(0,18)}… on ${network}`);
 
   const cell = cells[0];
@@ -127,11 +158,34 @@ export async function resolveCKBFS(typeId, network, onProgress = () => {}) {
   const witnesses = tx.witnesses || [];
 
   // Reassemble all chunks in order
-  onProgress(`Extracting ${meta.filename || 'file'} (${meta.indexes.length} chunk${meta.indexes.length > 1 ? 's' : ''})…`);
+  // Assemble chunks — V3 uses nextIndex chaining; V2 uses indexes array
   const chunks = [];
-  for (const idx of meta.indexes) {
-    if (idx >= witnesses.length) throw new Error(`Witness index ${idx} out of range`);
-    chunks.push(extractChunkFromWitness(witnesses[idx]));
+  if (meta.indexes && meta.indexes.length > 0) {
+    // V2 style: explicit indexes array
+    onProgress(`Extracting ${meta.filename || 'file'} (${meta.indexes.length} chunk${meta.indexes.length !== 1 ? 's' : ''})…`);
+    for (const idx of meta.indexes) {
+      if (idx >= witnesses.length) throw new Error(`Witness index ${idx} out of range`);
+      chunks.push(extractChunkFromWitness(witnesses[idx]));
+    }
+  } else {
+    // V3 style: follow nextIndex chain starting from meta.index
+    let idx = meta.index ?? 1;
+    let isFirst = true;
+    const visited = new Set();
+    while (idx !== 0 && !visited.has(idx)) {
+      visited.add(idx);
+      if (idx >= witnesses.length) throw new Error(`Witness index ${idx} out of range (${witnesses.length} witnesses)`);
+      const isCont = !isFirst;
+      chunks.push(extractChunkFromWitness(witnesses[idx], isCont));
+      const next = getNextIndex(witnesses[idx], isCont);
+      isFirst = false;
+      idx = next;
+    }
+    // If only one chunk (nextIndex=0 from the start), we already extracted it
+    if (chunks.length === 0) {
+      chunks.push(extractChunkFromWitness(witnesses[meta.index ?? 1], false));
+    }
+    onProgress(`Extracting ${meta.filename || 'file'} (${chunks.length} chunk${chunks.length !== 1 ? 's' : ''})…`);
   }
 
   // Concatenate chunks into a fresh owned ArrayBuffer (Safari Blob compat)

@@ -262,9 +262,20 @@ function BatchMintPanel({ canMint, reasons, files, cluster, meta, nodeInfo, netw
               : 'https://testnet.explorer.nervos.org/transaction';
             const short = h => h ? `${h.slice(0,10)}…${h.slice(-8)}` : '—';
             const copyHash = async (h, el) => {
-              await navigator.clipboard.writeText(h).catch(() => {});
-              const orig = el.textContent; el.textContent = '✓';
-              setTimeout(() => { el.textContent = orig; }, 1500);
+              try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  await navigator.clipboard.writeText(h);
+                } else {
+                  // Fallback for mobile/non-HTTPS
+                  const ta = document.createElement('textarea');
+                  ta.value = h; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                  document.body.appendChild(ta); ta.focus(); ta.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(ta);
+                }
+                const orig = el.textContent; el.textContent = '✓';
+                setTimeout(() => { el.textContent = orig; }, 1500);
+              } catch(e) { console.warn('copy failed', e); }
             };
             return (
               <div key={i} className="result-row">
