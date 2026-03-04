@@ -116,24 +116,36 @@ function AppInner({ network, setNetwork }) {
 
   return (
     <div className="app">
-      <header>
-        <div className="header-inner">
-          <div className="logo">
-            {theme.logoIcon
-              ? <img src={theme.logoIcon} alt={theme.siteName} style={{height:'1.6rem',marginRight:'0.5rem',verticalAlign:'middle'}}/>
-              : null}
-            {theme.logoText || 'CKB DOB Minter'}
+      <header className="site-header">
+        <div className="site-header-inner">
+          <a href="/" className="site-logo">
+            <img src="/wyltek-mark.png" alt="W" />
+            Wyltek Industries
+          </a>
+          <button className="nav-toggle" id="navToggle" aria-label="Menu"
+            onClick={() => document.getElementById('siteNav').classList.toggle('open')}>
+            ☰
+          </button>
+          <nav id="siteNav" className="site-nav">
+            <a href="/">Home</a>
+            <a href="/hardware.html">Hardware</a>
+            <a href="/ckb.html">CKB</a>
+            <a href="/research.html">Research</a>
+            <a href="/ckbfs-viewer.html">Inventory</a>
+            <a href="/mint/" className="active">Mint</a>
+            <a href="/members.html" className="nav-join">✦ Membership</a>
+          </nav>
+        </div>
+        {/* Mint/Burn + Network toggles — sub-bar */}
+        <div className="mint-toolbar">
+          <div className="network-toggle">
+            <button className={mode==='mint'?'active':''} onClick={()=>setMode('mint')}>Mint</button>
+            <button className={mode==='burn'?'active':''} style={mode==='burn'?{background:'#ff4560',color:'#fff',borderColor:'#ff4560'}:{}} onClick={()=>setMode('burn')}>🔥 Burn</button>
           </div>
-          <div className="header-right">
-            <div className="network-toggle" style={{marginRight:'0.5rem'}}>
-              <button className={mode==='mint'?'active':''} onClick={()=>setMode('mint')}>Mint</button>
-              <button className={mode==='burn'?'active':''} style={mode==='burn'?{background:'#ff4560',color:'#fff'}:{}} onClick={()=>setMode('burn')}>🔥 Burn</button>
-            </div>
-            <div className="network-toggle">
-              {['mainnet','testnet'].map(n => (
-                <button key={n} className={network===n?'active':''} onClick={()=>setNetwork(n)}>{n}</button>
-              ))}
-            </div>
+          <div className="network-toggle">
+            {['mainnet','testnet'].map(n => (
+              <button key={n} className={network===n?'active':''} onClick={()=>setNetwork(n)}>{n}</button>
+            ))}
           </div>
         </div>
       </header>

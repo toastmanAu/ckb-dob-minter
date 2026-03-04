@@ -7,8 +7,8 @@
 
 export default {
   // ── Branding ─────────────────────────────────────────────────────────────
-  siteName:    'CKB DOB Minter',
-  logoText:    'CKB DOB Minter',       // text shown in header
+  siteName:    'Wyltek Industries',
+  logoText:    'Wyltek Industries',       // text shown in header
   logoIcon:    null,                    // path to logo image e.g. '/logo.png'
   favicon:     '/favicon.ico',
   description: 'Mint fully on-chain NFTs on Nervos CKB. Content lives inside the cell — no IPFS, no broken links.',
