@@ -18,7 +18,8 @@ import { mintDOBs } from './lib/minter.js';
 function AppInner({ network, setNetwork }) {
   const [meta,        setMeta]        = useState(DEFAULT_META);
   const [cluster,     setCluster]     = useState(null);   // null | { id, name, txHash? }
-  const [storageMode,   setStorageMode]   = useState('inline');
+  const [storageMode,   setStorageMode]   = useState(() => localStorage.getItem('ckbdob_storageMode') || 'inline');
+  const setStorageModePersist = (m) => { localStorage.setItem('ckbdob_storageMode', m); setStorageMode(m); };
   const [storageConfig, setStorageConfig] = useState({});
   const [mintState, setMintState] = useState({
     status: 'idle', progress: '', current: 0, total: 0, results: [], error: '',
@@ -142,7 +143,7 @@ function AppInner({ network, setNetwork }) {
           onInputChange={onInputChange} onDrop={onDrop} onDragOver={onDragOver}
           onRemove={removeFile} onOpen={openPicker}
         />
-        <StoragePanel storageMode={storageMode} onChange={setStorageMode} />
+        <StoragePanel storageMode={storageMode} onChange={setStorageModePersist} />
         <StorageConfigPanel storageMode={storageMode} config={storageConfig} onChange={setStorageConfig} />
         <ClusterPanel signer={signer} cluster={cluster} onChange={setCluster} />
         <MetaPanel meta={meta} onChange={setMeta} />
@@ -323,10 +324,11 @@ function BatchMintPanel({ canMint, reasons, files, cluster, meta, nodeInfo, netw
 
 
 export default function App() {
-  const [network, setNetwork] = useState('testnet');
+  const [network, setNetwork] = useState(() => localStorage.getItem('ckbdob_network') || 'testnet');
+  const setNetworkPersist = (n) => { localStorage.setItem('ckbdob_network', n); setNetwork(n); };
   return (
     <ccc.Provider>
-      <AppInner network={network} setNetwork={setNetwork} />
+      <AppInner network={network} setNetwork={setNetworkPersist} />
     </ccc.Provider>
   );
 }

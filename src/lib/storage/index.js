@@ -148,7 +148,8 @@ async function uploadArweave({ content, contentType, filename, config, onProgres
 
 async function uploadCKBFS({ content, contentType, filename, config, onProgress }) {
   const { publishCKBFS } = await import('@wyltek/ckbfs-browser');
-  const ccc = await import('@ckb-ccc/core');
+  const ccc  = await import('@ckb-ccc/core');
+  const ckbfs = await import('@ckbfs/api');
 
   const signer = config?.signer;
   if (!signer) throw new Error('CKBFS: connect your wallet first — a CKB signer is required');
@@ -156,6 +157,7 @@ async function uploadCKBFS({ content, contentType, filename, config, onProgress 
   const result = await publishCKBFS({
     signer,
     ccc,
+    ckbfs,
     content,
     contentType,
     filename,
@@ -164,7 +166,7 @@ async function uploadCKBFS({ content, contentType, filename, config, onProgress 
   });
 
   return {
-    uri:      result.uri,
+    uri:      `ckbfs://${result.typeId}`,
     provider: 'ckbfs',
     size:     content.length,
     meta: {
