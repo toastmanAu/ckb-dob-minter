@@ -103,6 +103,8 @@ export async function mintDOB(p) {
     sporeUri: sporeContentType === 'text/uri-list'
       ? new TextDecoder().decode(sporeContent)
       : null,
+    // Bake storageMode into result so viewer doesn't depend on current UI state
+    storageMode: p.storageMode || 'inline',
     // For inline viewer: original file bytes (already in memory, free to attach)
     inlineContent:     sporeContentType !== 'text/uri-list' ? p.content     : null,
     inlineContentType: sporeContentType !== 'text/uri-list' ? p.contentType : null,
