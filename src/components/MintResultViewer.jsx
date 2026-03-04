@@ -92,17 +92,31 @@ function CkbfsViewer({ typeId, txHash, network }) {
   const resolve = async () => {
     if (resolvedRef.current) return;
     resolvedRef.current = true;
+    if (!typeId) { setPhase('done'); return; }
     setPhase('resolving');
     setPct(90);
-    setMsg('Fetching content from chain…');
-    try {
-      const result = await resolveCKBFS(typeId, network, m => setMsg(m));
-      setContent(result);
-      setPhase('done');
-      setPct(100);
-    } catch (e) {
-      setPhase('error');
-      setMsg('Failed to resolve: ' + e.message);
+
+    const MAX_ATTEMPTS = 10;
+    const RETRY_DELAY  = 4000;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        setMsg(attempt > 1 ? `Waiting for indexer… (${attempt}/${MAX_ATTEMPTS})` : 'Fetching from chain…');
+        const result = await resolveCKBFS(typeId, network, m => setMsg(m));
+        setContent(result);
+        setPhase('done');
+        setPct(100);
+        return;
+      } catch (e) {
+        const isNotFound = e.message.includes('No CKBFS cell found');
+        if (isNotFound && attempt < MAX_ATTEMPTS) {
+          setPct(90 + attempt);
+          await new Promise(r => setTimeout(r, RETRY_DELAY));
+        } else {
+          setPhase('error');
+          setMsg('Failed to resolve: ' + e.message);
+          return;
+        }
+      }
     }
   };
 
