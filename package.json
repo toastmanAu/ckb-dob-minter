@@ -16,6 +16,7 @@
     "@ckbfs/api": "github:nervape/ckbfs-api",
     "@exact-realty/multipart-parser": "^1.0.14",
     "@spore-sdk/core": "^0.2.0",
+    "@wyltek/ckbfs-browser": "file:../ckbfs-browser-sdk",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

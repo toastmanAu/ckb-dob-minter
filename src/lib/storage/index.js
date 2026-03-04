@@ -144,21 +144,33 @@ async function uploadArweave({ content, contentType, filename, config, onProgres
   };
 }
 
-// ── CKBFS ────────────────────────────────────────────────────────────────────
+// ── CKBFS via browser-native publisher ──────────────────────────────────────
 
 async function uploadCKBFS({ content, contentType, filename, config, onProgress }) {
-  // CKBFS stores content in CKB witnesses — requires a CKB signer
-  // This is a placeholder until CKBFS SDK has stable browser support
-  // See: https://github.com/ckb-devrel/ckbfs
+  const { publishCKBFS } = await import('@wyltek/ckbfs-browser');
+  const ccc = await import('@ckb-ccc/core');
 
   const signer = config?.signer;
-  if (!signer) {
-    throw new Error('CKBFS: requires a CKB signer in storage config');
-  }
+  if (!signer) throw new Error('CKBFS: connect your wallet first — a CKB signer is required');
 
-  onProgress(0, 'CKBFS upload not yet implemented');
-  throw new Error(
-    'CKBFS browser SDK is not yet stable. ' +
-    'Track progress at https://github.com/ckb-devrel/ckbfs'
-  );
+  const result = await publishCKBFS({
+    signer,
+    ccc,
+    content,
+    contentType,
+    filename,
+    mainnet: config?.mainnet ?? false,
+    onProgress: (pct, msg) => onProgress(pct, msg),
+  });
+
+  return {
+    uri:      result.uri,
+    provider: 'ckbfs',
+    size:     content.length,
+    meta: {
+      typeId:      result.typeId,
+      txHash:      result.txHash,
+      capacityCkb: result.capacityCkb,
+    },
+  };
 }
