@@ -145,11 +145,11 @@ function AppInner({ network, setNetwork }) {
         <StoragePanel storageMode={storageMode} onChange={setStorageMode} />
         <StorageConfigPanel storageMode={storageMode} config={storageConfig} onChange={setStorageConfig} />
         <ClusterPanel signer={signer} cluster={cluster} onChange={setCluster} />
+        <MetaPanel meta={meta} onChange={setMeta} />
         <CostPanel
           files={files} storageMode={storageMode}
           cluster={cluster} network={network}
         />
-        <MetaPanel meta={meta} onChange={setMeta} />
         <BatchMintPanel
           canMint={canMint} reasons={reasons} files={files} cluster={cluster}
           meta={meta} nodeInfo={nodeInfo} network={network}
