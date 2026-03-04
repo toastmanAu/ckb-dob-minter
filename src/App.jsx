@@ -197,7 +197,7 @@ function AppInner({ network, setNetwork }) {
 /**
  * BatchMintPanel — replaces MintPanel, shows per-file progress + results list
  */
-import { CkbfsConfirmPanel } from './components/CkbfsConfirmPanel.jsx';
+import { MintResultViewer } from './components/MintResultViewer.jsx';
 
 function BatchMintPanel({ canMint, reasons, files, cluster, meta, nodeInfo, network, mintState, onMint, storageMode }) {
   const { status, progress, current, total, results, error } = mintState;
@@ -280,14 +280,7 @@ function BatchMintPanel({ canMint, reasons, files, cluster, meta, nodeInfo, netw
                   </a>
                   <button className="hash-copy-btn" onClick={e => copyHash(r.txHash, e.target)}>⧉</button>
                 </div>
-                {/* CKBFS on-chain verifier + live preview */}
-                {storageMode === 'ckbfs' && r.ckbfsTypeId && (
-                  <CkbfsConfirmPanel
-                    txHash={r.ckbfsTxHash}
-                    typeId={r.ckbfsTypeId}
-                    network={network}
-                  />
-                )}
+                <MintResultViewer result={r} storageMode={storageMode} network={network} />
               </div>
             );
           })}

@@ -93,7 +93,20 @@ export async function mintDOB(p) {
   await tx.completeFeeBy(p.signer, 1000n);
   log('Signing & broadcasting…');
   const txHash = await p.signer.sendTransaction(tx);
-  return { txHash, sporeId: id, ckbfsTypeId, ckbfsTxHash };
+  return {
+    txHash,
+    sporeId: id,
+    ckbfsTypeId,
+    ckbfsTxHash,
+    // For viewer: what actually ended up in the Spore cell
+    sporeContentType,
+    sporeUri: sporeContentType === 'text/uri-list'
+      ? new TextDecoder().decode(sporeContent)
+      : null,
+    // For inline viewer: original file bytes (already in memory, free to attach)
+    inlineContent:     sporeContentType !== 'text/uri-list' ? p.content     : null,
+    inlineContentType: sporeContentType !== 'text/uri-list' ? p.contentType : null,
+  };
 }
 
 /**
