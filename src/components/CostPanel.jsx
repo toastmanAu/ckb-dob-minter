@@ -59,7 +59,13 @@ export function CostPanel({ files, storageMode = 'inline', cluster, network, ckb
     let uploadCostUSD = 0;
     let uploadNote = '';
     if (storageMode === 'ckbfs') {
-      uploadNote = 'CKBFS upload cost varies (CKB capacity)';
+      // CKBFS index cell: lock(53) + type(65) + data(~50-90 bytes typical) + capacity_field(8) + 2 CKB headroom
+      // data size = 24 (molecule header) + 4*chunks + contentType + filename lengths
+      const estChunks = Math.ceil(totalRawBytes / files.length / 32768) || 1;
+      const estDataBytes = 24 + 4 * estChunks + 20 + 20; // rough: ~64 bytes typical
+      const estCellBytes = 8 + 53 + 65 + estDataBytes;
+      const ckbfsDepositCKB = estCellBytes + 2; // +2 CKB headroom
+      uploadNote = `~${ckbfsDepositCKB} CKB locked per file (permanent on-chain storage deposit)`;
     } else if (storageMode === 'ipfs') {
       uploadNote = 'Free via Pinata (up to 1 GB)';
     } else if (storageMode === 'arweave') {
