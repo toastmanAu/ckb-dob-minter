@@ -133,6 +133,28 @@ function AppInner({ network, setNetwork }) {
       </header>
 
       <main>
+        {network === 'mainnet' && (
+          <div style={{
+            background: 'rgba(255,140,66,0.08)',
+            border: '1px solid rgba(255,140,66,0.35)',
+            borderRadius: '10px',
+            padding: '0.75rem 1rem',
+            marginBottom: '1rem',
+            fontSize: '0.83rem',
+            color: '#ff8c42',
+            display: 'flex',
+            gap: '0.6rem',
+            alignItems: 'flex-start',
+            lineHeight: '1.5',
+          }}>
+            <span style={{flexShrink:0, fontSize:'1rem'}}>⚠️</span>
+            <span>
+              <strong>Mainnet — real CKB.</strong> Minting locks CKB permanently into index cells (can't be recovered).
+              CKBFS storage also locks a deposit. Test on <button onClick={()=>setNetwork('testnet')}
+              style={{background:'none',border:'none',color:'#00c8ff',cursor:'pointer',padding:0,fontSize:'inherit',textDecoration:'underline'}}>Testnet</button> first if unsure.
+            </span>
+          </div>
+        )}
         <WalletPanel signer={signer} address={address} onDisconnect={disconnect} onOpen={open} />
         <NodePanel
           status={nodeStatus} nodeInfo={nodeInfo} progress={nodeProgress}
